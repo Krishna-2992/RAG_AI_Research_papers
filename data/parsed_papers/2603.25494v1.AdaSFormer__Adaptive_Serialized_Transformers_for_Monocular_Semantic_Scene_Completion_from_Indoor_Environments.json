@@ -1,0 +1,386 @@
+{
+  "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+  "title": "AdaSFormer: Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+  "sections": [
+    {
+      "section": "Ziping Zhao 1 *",
+      "text": "1 Tianjin Normal University\n2 Zhejiang University\n3 National University of Singapore\nAdaptive Serialization\nRGB Input\nGround Truth\nSC-IoU\nSSC-mIoU"
+    },
+    {
+      "section": "ISO",
+      "text": "Ours\n51.33\n47.11\n32.50\n31.25\n3D to 1D\nIllustration on BEV\n0\n20\n40\n60\n80\n2^11\n2^12\n2^13\n2^14\n2^15\nGPU Memory (G)\nThe number of voxels\nOurs\nVanilla Transformer\n(a) Fixed vs. Adaptive"
+    },
+    {
+      "section": "！",
+      "text": "(b) Visual Results\n(c) Performance\nFixed Group  (Previous Work)\nAdaptive Group  (This work)\nLearnable  Shift"
+    },
+    {
+      "section": "A d a S F o r m e r",
+      "text": "Ours\nFigure 1.   We introduce an  Adaptive Serialized Transformer ( A d a S F o r m e r )  to obtain a global receptive field for indoor 3D scene under-\nstanding, enabling the model to handle complex spatial layouts and severe occlusions.   (1)  Existing indoor approaches rely on convolution-\nbased designs due to the high memory cost of Transformers, which limits their global modeling capacity.   (2)  Existing serialization-based\nmethods assign a fixed receptive field to each patch.   In contrast, our method employs a learnable shift mechanism that adaptively adjusts\nthe   receptive   fields   and   coordinate   features   across   layers,   achieving   more   flexible   and   effective   spatial   representation.   It   is   worth   noting\nthat we employ bird’s-eye view (BEV) representations to simplify the 3D voxels, enabling clearer and more intuitive visualization."
+    },
+    {
+      "section": "Abstract",
+      "text": "Indoor   monocular   semantic   scene   completion   (MSSC)   is\nnotably more challenging than its outdoor counterpart due\nto   complex   spatial   layouts   and   severe   occlusions.   While\ntransformers   are   well   suited   for   modeling   global   depen-\ndencies,   their   high   memory   cost   and   difficulty   in   recon-\nstructing   fine-grained   details   have   limited   their   use   in   in-\ndoor   MSSC.   To   address   these   limitations,   we   introduce"
+    },
+    {
+      "section": "A d a S F o r m e r , a serialized transformer framework tailored",
+      "text": "for indoor MSSC. Our model features  three  key designs:  (1)\nan   Adaptive   Serialized   Transformer   with   learnable   shifts\nthat   dynamically   adjust   receptive   fields;   (2)   a   Center-\nRelative   Positional   Encoding   that   captures   spatial   infor-\nmation   richness;   and   (3)   a   Convolution-Modulated   Layer\nNormalization   that   bridges   heterogeneous   representations\nbetween   convolutional   and   transformer   features.\nExten-\n* Corresponding authors.\nsive experiments on NYUv2 and Occ-ScanNet demonstrate\nthat   ASFormer   achieves   state-of-the-art   performance.   The\ncode is publicly available at:   https://github.com/\nalanWXZ/AdaSFormer ."
+    },
+    {
+      "section": "Introduction",
+      "text": "Monocular semantic scene completion (MSSC) has recently\ngained traction in the context of autonomous driving [ 3 ,  4 ,\n76 ,  82 ,  101 ], as it enables holistic 3D understanding of com-\nplex outdoor environments from a single image [ 39 ,  68 ].   In\ncontrast,   indoor   MSSC   remains   underexplored   despite   its\nfundamental   importance   to   indoor   scene   perception,   sup-\nporting applications in robot navigation, 3D reconstruction,\nand spatial understanding [ 5 ,  16 ,  29 – 31 ,  79 ,  80 ,  83 ,  84 ].\nIndoor   scenes   differ   substantially   from   outdoor   settings\n[ 27 ,   28 ,   41 ,   42 ,   46 ,   81 ,   86 ].   Rather   than   featuring   regu-\nlar road layouts and open views,   they contain intricate and\nmulti-level   spatial   structures,   including   overlapping   ceil-"
+    },
+    {
+      "section": "arXiv:2603.25494v1  [cs.CV]  26 Mar 2026",
+      "text": "ings, walls, and furniture, with frequent occlusions and high\nobject   density   [ 6 ,   37 ,   75 ].   This   complexity   demands   not\nonly accurate local geometry but also strong global contex-\ntual   reasoning   to   infer   the   geometry   and   semantics   of   oc-\ncluded regions [ 74 ].\nMost   existing   approaches   heavily   rely   on   convolutional\narchitectures   [ 64 ,   74 ,   90 ,   91 ].   However,   their   inherently\nlimited   receptive   fields   prevent   them   from   modeling   long-\nrange   dependencies   effectively,   while   enlarging   kernels   in"
+    },
+    {
+      "section": "D   incurs   prohibitive   cubic   computational   cost   [ 9 ,   14 ].",
+      "text": "Early   convolutional   layers   propagate   information   solely\nwithin local neighborhoods,   while deeper layers operate at\nreduced resolutions, leading to spatial information loss and\ndegraded completion quality [ 17 ,  40 ,  52 ,  94 ].\nModeling   long-range   dependencies   is   therefore   essen-\ntial, making transformer architectures a natural choice [ 20 ,\n50 ,   66 ].   Yet,   applying   transformers   directly   to   dense   3D\nvolumes   remains   computationally   expensive   and   memory-\nintensive [ 22 ,  38 ,  39 ,  53 ,  77 ], especially for high-resolution\nindoor scenes [ 63 ,  91 ].\nTo   address   these   challenges,   we   design   A d a S F o r m e r ,\na   hybrid   framework   that   unifies   convolutional   and   trans-\nformer   modules,   each   serving   complementary   roles.   The\ntransformer operates on voxels containing valid features to\ncapture global context, while the convolution focuses on lo-\ncal feature propagation and refinement.   Our framework in-\ntroduces  three  core designs:   (1)  Adaptive Serialized Atten-\ntion  (ASA), which employs learnable shifts to dynamically\nadjust receptive fields and coordinate features across layers;"
+    },
+    {
+      "section": "(2)  Center-Relative Positional Encoding (CRPE) , which en-",
+      "text": "codes spatial information richness relative to the scene cen-\nter;   and   (3)   Convolution-Modulated   Layer   Normalization\n(CMLN), which harmonizes feature statistics between con-\nvolutional and transformer representations.\nAs illustrated in Fig.  2 , given a single RGB image, a 2D\nencoder   first   extracts   features   and   estimates   depth,   which\nare   projected   into   3D   space   via   surface   projection   [ 45 ].\nWithin the 3D encoder,   alternating transformer and convo-\nlutional   modules   jointly   capture   global   context   and   com-\nplete 3D geometry,   followed by a lightweight decoder that\nintegrates   multi-scale   features   to   produce   final   semantic\nscene completion (SSC) results.\nOur main contributions are summarized as follows:\n•   We   propose   A d a S F o r m e r   to   capture   long-range   depen-\ndencies   while   maintaining   efficiency   through   comple-\nmentary feature propagation, substantially reducing both\nmemory footprint and computational overhead.\n•   We   introduce   three   novel   components,\n1 Adaptive   Se-\nrialized   Attention ,\n2 Center-Relative   Positional   Encod-\ning ,   and   3 Convolution-Modulated   Layer   Normalization ,\nwhich   collectively   enhance   receptive-field   adaptability,\nspatial reasoning, and cross-module feature alignment.\n•   Extensive   experiments   on   the   NYUv2   and   OccScanNet\ndatasets demonstrate that our approach achieves state-of-\nthe-art performance against popular MSSC methods."
+    },
+    {
+      "section": "Monocular   Semantic   Scene   Completion   (MSSC).   Scene",
+      "text": "completion   tasks   predicts   both   voxel   occupancy   and   se-\nmantic   labels,   providing   holistic   3D   scene   understand-\ning   [ 36 ,   42 ,   70 ,   72 ,   73 ,   75 ].   The   pioneering   SSCNet   [ 99 ]\nintroduced   indoor   SSC   using   depth   maps,   later   extended\nto   RGB-D   inputs   [ 8 ,   33 ,   34 ,   45 ,   73 ]   and   outdoor   percep-\ntion   [ 48 ,   49 ,   58 ,   78 ,   85 ,   88 ,   102 ].   Recent   monocular   SSC\napproaches [ 26 ,  32 ,  35 ,  39 ,  62 ,  69 ,  71 ,  93 ,  95 ,  97 ,  98 ,  101 ]\nfurther   advance   the   task   by   relying   solely   on   RGB   im-\nages.\nFor   indoor   scenarios,   where   lightweight   deploy-\nment is critical, several representative works have emerged:\nMonoScene   [ 4 ]   bridges   2D-3D   features   via   Line-of-Sight\nProjection;   NDC-Scene   [ 90 ]   introduces   normalized   device\ncoordinates   to   reduce   depth   ambiguity;   ISO   [ 91 ]   enhances\nvoxel   learning   with   dual   projection;   and   MonoMRN   [ 74 ]\nadopts a masked recurrent refinement design.   Most indoor"
+    },
+    {
+      "section": "Method",
+      "text": "limited global reasoning. In contrast, our approach employs\nan adaptive serialized transformer to enlarge receptive fields\nwhile maintaining low computational cost."
+    },
+    {
+      "section": "Single-View 3D Reconstruction.  Recovering 3D geometry",
+      "text": "from a single RGB image has long been studied for both ob-\njects and scenes [ 25 ,  47 ].   Early works reconstruct individ-\nual objects using explicit [ 1 ,  11 ,  15 ] or implicit [ 54 ,  55 ,  57 ]\nrepresentations, while more recent efforts address full scene\nreconstruction   [ 10 ,   44 ,   96 ].   Holistic   reconstruction   meth-\nods   [ 12 ,   13 ,   43 ,   87 ,   92 ]   recover   the   scene   as   a   whole,   of-\nten   guided   by   depth   estimation   [ 4 ,   39 ,   91 ]   and   processed\nthrough encoder–decoder architectures.   Compositional ap-\nproaches   [ 18 ,   19 ,   44 ,   100 ]   reconstruct   objects   separately\nbefore assembling them via layout and pose estimation,   as\nseen in DepR [ 96 ] and ComboVerse [ 10 ]. These reconstruc-\ntion   paradigms   provide   geometric   priors   and   structural   in-\nsights closely related to semantic scene completion."
+    },
+    {
+      "section": "Serialization-Based Approaches.  The recent serialization-",
+      "text": "based transformers [ 7 ,  51 ,  67 ,  77 ] convert irregular 3D data\ninto   ordered   sequences   to   enable   efficient   attention   while\npreserving   spatial   locality.   Representative   works   include\nOctFormer [ 67 ], which partitions point clouds via sorted oc-\ntree keys; FlatFormer [ 51 ], which reduces padding through\nflattened   window   grouping;   and   PTv3   [ 77 ],   which   applies\nshuffle-based   ordering   with   conditional   positional   encod-\ning.   Although   designed   mainly   for   3D   segmentation   and\ndetection, these methods demonstrate the efficiency of seri-\nalized attention for large-scale 3D modeling.   Our work ex-\ntends this idea to semantic scene completion through adap-\ntive   serialization   with   learnable   shifts   and   center-relative\npositional encoding, improving long-range reasoning under\nsparse 3D layouts."
+    },
+    {
+      "section": "Method",
+      "text": "In this section, we first provide an overview of our method.\nNext,   we   give   a   brief   preliminary   to   voxel   serialization\n(Sec.   3.1 ).   Following   this,   we   delve   into   the   AdaSFormer\nnetwork, including its three proposed key designs: Adaptive\nSerialized Attention (Sec.  3.2.1 ), Center-Relative Positional\nEncoding (Sec.  3.2.2 ), and the Conv-Modulated Layer Nor-\nmalization (Sec.  3.2.3 ).   Lastly, we introduce the loss func-\ntion for model training (Sec.  3.2.4 )."
+    },
+    {
+      "section": "I RGB   that   captures   only   a   partial   3D   scene,   monocular   se-",
+      "text": "mantic scene completion aims to predict the volumetric oc-\ncupancy   of   the   entire   scene.   Each   voxel   is   assigned   a   se-\nmantic label  C i  with  i  ∈ [0 ,  1 , . . . , N ] , where  N   is the num-\nber of object categories and  C 0  denotes empty space."
+    },
+    {
+      "section": "Overall   Network   Architecture.   From   a   single   RGB   im-",
+      "text": "age, 2D features are first extracted using EfficientNet [ 65 ],\nand the corresponding depth map is estimated using an off-\nthe-shelf   method   [ 89 ].   Leveraging   the   estimated   depth   to-\ngether   with   the   camera’s   intrinsic   and   extrinsic   parame-\nters,   the   2D   features   are   projected   into   3D   space.   The   re-\nsulting   3D   representations   are   subsequently   processed   by\na   transformer-based   encoder,   consisting   of   a   series   of   AS-\nFormer   blocks,   followed   by   a   decoder   to   produce   the   fi-\nnal Semantic Scene Completion (SSC) outputs.   We refrain\nfrom employing a transformer-based architecture at the de-\ncoding stage, as the number of non-empty voxels increases\nsignificantly.   In   this   setting,   convolutional   decoding   offers\nhigher   efficiency   than   transformer-based   decoding,   effec-\ntively reducing computational overhead."
+    },
+    {
+      "section": ". Preliminary of Voxel Serialization",
+      "text": "In   this   section,   we   present   preliminaries   of   serialization-\nbased   transformers.\nWe   introduce   a   voxel   serialization-\nbased   method   that   enables   3D   networks   to   capture   a   suf-\nficiently   large   and   high-resolution   receptive   field   in   the\nearly   stage   while   keeping   memory   consumption   manage-\nable, which is crucial for scene completion tasks."
+    },
+    {
+      "section": "Serialization.   Serialization   transforms   irregular   or   high-",
+      "text": "dimensional spatial data into a structured sequential format\nsuitable for attention-based modeling as shown in Fig.  3  (a).\nSpecifically,   given   an   input   3D   voxel   X   ∈ R C × D × H × W   ,\nwe   employ   a   space-filling   curve   ( e.g. ,   Z   curve   and   Hilbert\ncurve)   to   linearize   the   volumetric   representation   along   a\ncontinuous path.   This preserves the local spatial proximity\nof neighboring elements, allowing the attention mechanism\nto operate efficiently while maintaining spatial correlations.\nAfter serialization, the data is represented as a sequence of\ntokens  S   = [ s 1 , s 2 , . . . , s N ] , where  N   =  D  ×  H   ×  W ."
+    },
+    {
+      "section": "Local Grouping.   The core purpose of serialization is to en-",
+      "text": "able more effective local grouping. Since the computational\ncomplexity of the attention mechanism grows quadratically\nwith   the   input   sequence   length   ( O ( N   ^2 ) ),   reasonable   data\ngrouping is crucial for processing large-scale 3D data.   Lo-\ncal   grouping   divides   the   serialized   sequence   into   fixed-\nlength   groups,   each   containing   G   consecutive   tokens.   At-\ntention   is   computed   only   within   each   group,   which   cap-\ntures local dependencies while significantly reducing com-\nputational   cost.\nFormally,   the   sequence   is   divided   into"
+    },
+    {
+      "section": "M     =  \\l ceil N / G \\rceil  groups,   where   ⌈·⌉ denotes   the   ceiling   op-",
+      "text": "eration   (i.e.,   rounding   up),   ensuring   that   all   tokens   are   in-\ncluded:\nS   =  [ S _ 1 ,  S _ 2 ,\n\\ d   o  t s   ,  S_M], \\quad S_i \\in \\mathbb {R}^{G \\times C}.\n(1)\nUnder   this   grouping,   the   computational   complexity   per\ngroup   is   O ( G ^2 ) ,   leading   to   a   total   complexity   of   O ( M\n\\ c d   o   t   G   ^  2 ) = O(N \\cdot G) , which is much lower than the full atten-\ntion complexity  O ( N   ^2 ) .\nCompared   with   conventional   window-attention   [ 50 ]\nbased   grouping   methods,   serialization-based   grouping   for"
+    },
+    {
+      "section": "D   data   has   the   following   advantages:   1)   Avoids   voxel",
+      "text": "padding   overhead:   3D   point   clouds   are   often   sparse,   and\nin   window-based   grouping,   the   number   of   voxels   in   each\nwindow   usually   varies.   Padding   is   required   to   unify   the\nlength,   which   wastes   significant   computational   resources.\nIn   contrast,   serialization-based   grouping   can   evenly   divide\nthe   non-empty   voxels   without   additional   padding,   reduc-\ning   redundant   computation.   2)   Larger   effective   receptive\nfield:   Window-based grouping includes empty voxels, lim-\niting   the   local   receptive   field.\nGiven   the   same   number\nof   tokens   per   group,   serialization-based   grouping   removes\nempty   voxels,   allowing   attention   to   operate   over   a   wider\nrange of valid spatial regions and capturing richer local con-\ntextual information."
+    },
+    {
+      "section": ". AdaSFormer:   Towards Efficient MSSC",
+      "text": "Several   stacked   AdaSFormer   blocks   serve   as   the   3D   net-\nwork   encoder,   modeling   global   dependencies   with   moder-\nate memory consumption."
+    },
+    {
+      "section": ". Adaptive Serialized Attention (ASA)",
+      "text": "Although   the   serialized   transformer   reduces   GPU   memory\nconsumption   by   serializing   patches,   the   obtained   patches\nremain   fixed   once   a   specific   serialization   strategy   is   cho-\nsen.   However, the grouping scheme also greatly affects the\nreceptive   field   range.   As   illustrated   in   Figure   3 ,   different\nstarting points can significantly alter the receptive field:   in\nsome   cases,   the   partitioned   voxel   range   may   fully   cover   a\nsingle   object,   thereby   capturing   its   overall   structure   more\neffectively;   in   other   cases,   the   voxel   range   may   simulta-\nneously   include   multiple   objects   and   their   spatial   relation-\nships.   Such variations directly influence the model’s repre-\nsentational capacity at both local and global levels, as well\nas its ability to capture semantic correlations.\nTherefore,   obtaining   an   appropriate   shift   is   crucial   for\nserialized   attention.   However,   existing   serialized   attention"
+    },
+    {
+      "section": "γ ,  β",
+      "text": ". . .\n. . .\nFigure 2.   A d a S F o r m e r  Framework .   (a) Overall network architecture:   It mainly consists of a 2D encoder,   a depth estimation network,\na   2D-to-3D   projection   module,   and   a   3D   network.   (b)   Adaptive Serialized Transformer   (ASF): This is   the core of our   method.   A   set   of"
+    },
+    {
+      "section": "ASF   blocks   forms   the   encoder   of   the   3D   network.   The   3D   voxels   are   adaptively   converted   into   1D   patches,   which   are   then   augmented",
+      "text": "with   center-relative   positional   encoding.   These   patches   are   processed   through   standard   self-attention   and   feed-forward   layers.   Through\nthe   proposed   Convolution-Modulated   Layer   Normalization   (CMLN),   the   heterogeneous   features   from   the   transformer   and   convolutional\nlayers are bridged.   The resulting features are then fed into a DDR block for scene completion.   (c) Convolution-Modulated Layer Normal-\nization (CMLN): Modulates features to integrate transformer and convolutional representations effectively.   (d) Center-Relative Positional\nEncoding:   Enhances the richness of input information by modeling the relative spatial relationships of patches.\nmethods   do   not   consider   the   influence   of   patch   shifts.   For\nwindow-based attention mechanisms, although prior works\nsuch   as   the   Swin   Transformer   [ 50 ]   introduce   the   concept\nof   window   shifting,   the   shift   size   remains   fixed   and   non-\nlearnable.   Moreover,   since   the   Swin   Transformer   operates\non   2D   patches,   its   potential   shift   range   is   inherently   con-\nstrained   by   the   spatial   window   size.\nIn   contrast,   serial-\nized   attention   operates   along   a   1D   voxel   sequence,   offer-\ning a broader and more flexible space for shift adjustment.\nThis   property   makes   it   particularly   suitable   for   incorporat-\ning learnable, data-driven shifts that can dynamically adapt\nthe serialization starting point to better capture object struc-\ntures and their spatial relationships.\nAssuming   a   patch   size   of   P ,   we   introduce   K   learnable\nparameters   to   model   the   spatial   offsets   within   each   voxel\ngroup   after   serialization.   Each   parameter   corresponds   to\na   discrete   shift   value   uniformly   spaced   by   P/K ;   that   is,\nthe   k -th   parameter   represents   a   shift   of   k   ·   ( P/K ) .   Dur-\ning training, these learnable offsets are optimized to capture\nthe most informative spatial alignment of serialized voxels\nwith respect to object boundaries or scene layouts, thereby\nimproving the contextual consistency of the representation."
+    },
+    {
+      "section": "Straight-Through   Gumbel-Softmax.   By   leveraging   the",
+      "text": "differentiable relaxation provided by Gumbel-Softmax, the\nstart   point   can   be   trained   end-to-end.   During   training,   we\ncompute a straight-through estimator to allow gradient flow\nwhile maintaining discrete selections.   Let  l  denote the log-\nits and  τ   the temperature.   The soft Gumbel-Softmax output"
+    },
+    {
+      "section": "y soft  and the hard one-hot output  y hard  are computed as:",
+      "text": "\\ma   t hbf {y}\n_ {  \\  m\na\nt\nh"
+    },
+    {
+      "section": "r  m   {soft}}   =  \\mathrm {softmax}\\Big (\\frac {\\mathbf {l} + \\mathbf {g}}{\\tau }\\Big ), \\quad \\mathbf {g} \\sim \\mathrm {Gumbel}(0,1),",
+      "text": "(2)\n\\ma   t hbf    {y\n}\n_{\\ mat\nh"
+    },
+    {
+      "section": "r m {h ar",
+      "text": "d\n}} = \\mathrm {one\\_hot}\\Big (\\arg \\max _i \\mathbf {y}_{\\mathrm {soft},i}\\Big ).\n(3)\nThe   straight-through   (ST)   Gumbel-Softmax   output   is\nthen given by:\n\\   m  a thbf    { y}_{  \\  m athr m  {ST}} =  \\mathbf {y}_{\\mathrm {hard}} + \\mathbf {y}_{\\mathrm {soft}} - \\mathbf {y}_{\\mathrm {soft}}.\\mathrm {detach}().\n(4)\nIn this formulation, the forward pass uses the discrete  y hard ,\nwhile   the   gradient   during   backpropagation   flows   through"
+    },
+    {
+      "section": "y soft ,   enabling   differentiable   learning   with   discrete   selec-",
+      "text": "tions."
+    },
+    {
+      "section": "Temperature   Annealing   Strategy.   We   design   a   tempera-",
+      "text": "ture annealing strategy to allow the network to better learn\ndiscrete   selections.   Specifically,   the   temperature   τ   in   the\nGumbel-Softmax   is   gradually   decreased   during   training   to\ncontrol   the   discreteness   of   the   sampling.   At   epoch   t ,   τ   is\nupdated as:\n\\ tau\n_ t =  \\ max  \\  Big  ( \\t a\nu\n_{\\min }, \\, \\tau _{\\mathrm {init}} \\cdot \\exp (-\\alpha t)\\Big ),\n(5)\nwhere   τ init   is   the   initial   temperature,   τ min   is   the   minimum\ntemperature, and  α  is the annealing rate."
+    },
+    {
+      "section": ". Center-Relative Positional Encoding (CRPE)",
+      "text": "Since   our   algorithm   adopts   a   hybrid   architecture   of   CNN\nand   Transformer,   where   the   CNN   effectively   captures   lo-\ncal positional information, the model has a reduced reliance"
+    },
+    {
+      "section": "CV",
+      "text": "(a)\n(b)\n(c)\n(d)\n(e)\nFigure 3.   (a) illustrates the Z-order serialization of a 2D image, as well as that of a sparse 2D image, where the letters “C” and “V” in the\nfigure indicate the locations of objects in the spatial domain.   (b)-(e) illustration of Z-order serialization with shifts of 0, 3, 6, and 9 (from\nleft to right).   Different shift settings significantly affect the coverage and overlap between adjacent patches, especially for large patch sizes.\non   traditional   positional   encoding.   Inspired   by   work   [ 2 ],\nwhich demonstrates that the spatial distribution of input in-\nformation in 3D space has a significant impact on SSC per-\nformance.   Based   on   this   observation,   we   design   a   posi-\ntional encoding scheme to model this information richness.\nSpecifically, we compute the yaw and pitch angles between\neach   point   and   the   scene   center   to   describe   their   relative\nspatial   relationships.   This   encoding   enables   the   model   to\nperceive the spatial relations between different regions and\nthe scene center, allowing it to identify areas that are more\nlikely to contain key structural or semantic information, and\nthereby   allocate   attention   and   feature   weights   more   effec-\ntively.\nWe   compute   the   scene   center   c   as   the   mean   coordinate\nof all occupied voxels:\n\\ m\na th   b f    { c }   =   \\\nf r\na c  { \\ s u   m   _\n{i=1}^{M} \\mathbf {p}_i \\cdot \\mathbf {1}(v_i > 0)} {\\sum _{i=1}^{M} \\mathbf {1}(v_i > 0)},\n(6)\nwhere  p i   = ( x i , y i , z i )  denotes the center coordinate of the\ni -th   voxel,   v i   is   its   occupancy   value,   1 ( v i   >   0)   is   an   indi-\ncator   function   that   equals   1   if   the   voxel   is   occupied   and   0\notherwise,   and   c   represents   the   mean   coordinate   of   all   oc-\ncupied voxels,  i.e. , the scene center.\nThe   yaw   angle   (horizontal   rotation   around   the   vertical\naxis) for each voxel and for the grid center is defined as:\n\\ theta  ^ i\n=   \\\no p eratorname {atan2}(d^i_x, d^i_y),\n(7)\n\\ theta  ^ c\n=   \\\no p eratorname {atan2}(d^c_x, d^c_y),\n(8)\nwhere  d ^i_\nx   and  d ^i_\ny   are the  x  and  y   components of the vector"
+    },
+    {
+      "section": "\\protect \\mathbf  {d}^ i .   The   yaw   difference   between   voxel   i   and   the   center   is",
+      "text": "then given by:\n\\   D  e l   t  a   \\theta ^i = \\theta ^i - \\theta ^c.\n(9)\nSimilarly,   the   pitch   angle   (vertical   inclination)   for   each\nvoxel and for the grid center are defined as:\n\\ phi ^\ni\n=\n\\\no\np e r a t o   r n a m e   {\na\ntan2}\\Big (d^i_z, \\sqrt {(d^i_x)^2 + (d^i_y)^2}\\Big ),\n(10)\n\\ phi ^\nc\n=\n\\\no\np e r a t o   r n a m e   {\na\ntan2}\\Big (d^c_z, \\sqrt {(d^c_x)^2 + (d^c_y)^2}\\Big ),\n(11)\nand the pitch difference is computed as:\n\\   D  e l   t  a   \\phi ^i = \\phi ^i - \\phi ^c.\n(12)\nAfter   obtaining   ∆ ϕ   and   ∆ θ ,   we   concatenate   them   into\na single feature vector, which is then processed by a multi-\nlayer   perceptron   (MLP).   The   resulting   output   is   used   as   a\nbias added to the serialized attention."
+    },
+    {
+      "section": ". Convolution-Modulated Layer Norm (CMLN)",
+      "text": "Since transformers and convolutional networks extract fun-\ndamentally   different   types   of   features,   directly   interleav-\ning   these   modules   can   cause   learning   difficulties   and   limit\nperformance   gains.\nTo   address   this,   we   propose   Conv-\nModulated Layer Normalization motivated by [ 56 ]. Specifi-\ncally, after voxel features  X voxel  are serialized and processed\nby Serialized Attention, they are modulated through Conv-\nModulated   Layer   Normalization   before   being   fed   into   the"
+    },
+    {
+      "section": "DDR   module,   a   lightweight   component   designed   for   se-",
+      "text": "mantic scene completion (SSC) refinement.\nThe   Conv-Modulated   Layer   Normalization   can   be   de-\nfined as follows:\n\\t e x t     { CMLN} ( h  _ i   \\mid  X  _   { \\  t  e x\nt\n{  v o x el}})   = \\gamma (X_{\\text {voxel}}) \\odot \\frac {h_i - \\mu _i}{\\sigma _i} + \\beta (X_{\\text {voxel}}),\n(13)\nwhere   h i   denotes   the   features   to   be   normalized,   µ i   and\nσ i   are   the   mean   and   standard   deviation   computed   over   the\nfeature   dimension,   and   γ ( X voxel ) ,   β ( X voxel )   are   functions\n( e.g. , small MLPs) that produce the normalization parame-\nters from the voxel features. This design allows the network\nto adaptively modulate feature statistics based on the input\ncontext.\nAfter   the   Convolution-Modulated   Layer   Normalization,\nthe features are fed into the DDR block [ 33 ], a lightweight\n3D convolutional module designed for semantic scene com-\npletion.   The Adaptive Serialized Attention captures global\nTable 1.   Comparisons among state-of-the-art MSSC methods  on the  NYUv2  dataset [ 63 ].   The symbol  †  denotes the results presented\nby [ 4 ].   The Best and 2nd Best scores from each metric are highlighted in Orange and Teal, respectively.\nMethod\nVenue\nSC IoU (%)\n■ Ceiling\n■ Floor\n■ Wall\n■ window\n■ chair\n■ bed\n■ sofa\n■ table\n■ tvs\n■ furniture\n■ objects\nSSC mIoU (%)\nLMSCNet †   [ 60 ]"
+    },
+    {
+      "section": "DV’20",
+      "text": "33 . 93\n4 . 49\n88 . 41\n4 . 63\n0 . 25\n3 . 94\n32 . 03\n15 . 44\n6 . 57\n0 . 02\n14 . 51\n4 . 39\n15 . 88\nAICNet †   [ 34 ]"
+    },
+    {
+      "section": "CVPR’20",
+      "text": "30 . 03\n7 . 58\n82 . 97\n9 . 15\n0 . 05\n6 . 93\n35 . 87\n22 . 92\n11 . 11\n0 . 71\n15 . 90\n6 . 45\n18 . 15\n3DSketch †   [ 8 ]"
+    },
+    {
+      "section": "CVPR’20",
+      "text": "38 . 64\n8 . 53\n90 . 45\n9 . 94\n5 . 67\n10 . 64\n42 . 29\n29 . 21\n13 . 88\n9 . 38\n23 . 83\n8 . 19\n22 . 91\nMonoScene [ 4 ]"
+    },
+    {
+      "section": "CVPR’22",
+      "text": "42 . 51\n8 . 89\n93 . 50\n12 . 06\n12 . 57\n13 . 72\n48 . 19\n36 . 11\n15 . 13\n15 . 22\n27 . 96\n12 . 94\n26 . 94\nNDC-Scene [ 90 ]"
+    },
+    {
+      "section": "ICCV’23",
+      "text": "44 . 17\n12 . 02\n93 . 51\n13 . 11\n13 . 77\n15 . 83\n49 . 57\n39 . 87\n17 . 17\n24 . 57\n31 . 00\n14 . 96\n29 . 03"
+    },
+    {
+      "section": "ECCV’24",
+      "text": "47 . 11\n14 . 21\n93 . 47\n15 . 89\n15 . 14\n18 . 35\n50 . 01\n40 . 82\n18 . 25\n25 . 90\n34 . 08\n17 . 67\n31 . 25\nMonoMRN [ 74 ]"
+    },
+    {
+      "section": "ICCV’25",
+      "text": "53 . 16\n26 . 80\n92 . 02\n19 . 39\n18 . 50\n17 . 66\n44 . 60\n31 . 02\n19 . 60\n17 . 22\n32 . 90\n18 . 31\n30 . 73\nGenFuSE [ 61 ]\narXiv’25\n46 . 30\n9 . 80\n92 . 80\n13 . 80\n13 . 70\n17 . 60\n48 . 60\n39 . 70\n17 . 60\n24 . 70\n33 . 40\n17 . 20\n29 . 90"
+    },
+    {
+      "section": "Ours",
+      "text": "51 . 33\n16 . 18\n92 . 72\n16 . 96\n14 . 10\n23 . 93\n53 . 89\n44 . 52\n16 . 65\n23 . 85\n35 . 97\n18 . 67\n32 . 50\ncontextual dependencies, while the convolution propagates\ninformation   to   spatially   neighboring   regions,   effectively\nenhancing   local   geometric   representations.   Moreover,   by\nincorporating   convolutional   operations,   the   Transformer\navoids   computing   attention   over   all   voxels,   thereby   reduc-\ning computational overhead."
+    },
+    {
+      "section": ". Loss Function",
+      "text": "Our   method   is   trained   end-to-end   from   scratch   by   apply-\ning cross-entropy loss, geometric affinity loss, and semantic\naffinity loss [ 4 ]:\n\\mat   h  c al    { L}_\n\\mat   h  r m {\ntotal} = \\mathcal {L}_\\mathrm {ce} + \\mathcal {L}_\\mathrm {scal}^{\\mathrm {sem}} + \\mathcal {L}_\\mathrm {scal}^{\\mathrm {geo}} ,\n(14)\nwhere  L scal  denotes the Scene-Class Affinity Loss proposed\nby MonoScene [ 4 ]."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "We   conduct   experiments   on   the   widely   used   NYUv2\ndataset   [ 63 ]   as   well   as   the   large-scale   indoor   dataset   Occ-\nScanNet [ 91 ].   The proposed approach is compared against\nstate-of-the-art methods, and both experimental results and\nablation   studies   are   thoroughly   analyzed.   In   addition,   we\npresent qualitative visualizations to further illustrate the ef-\nfectiveness of our proposed method."
+    },
+    {
+      "section": "Datasets.   The NYUv2 dataset [ 63 ] consists of  1 ,  449  depth",
+      "text": "images captured with a Kinect sensor across diverse indoor\nscenes,   split into  795  for training and  654  for testing.   Fol-\nlowing   SSCNet   [ 64 ],   we   employ   the   3D   voxel   annotations\nprovided by [ 59 ] and adopt the category mappings defined\nin   [ 21 ].   The   Occ-ScanNet   dataset   [ 91 ]   serves   as   a   large-\nscale benchmark for indoor 3D semantic scene completion.\nIt   contains   45 ,  755   training   frames   and   19 ,  764   validation\nframes,   with   scenes   voxelized   into   grids   of   60  ×  60  ×  36 .\n(a) RGB input\n(b) GT\n(c) w/o ASFormer\n(d) AdaSFormer\nCeil\nWin\n.\nFloor\nWall\nChair\nBed\nSofa\nTable"
+    },
+    {
+      "section": "TV",
+      "text": "Furn.\nObjects\nFigure 4.   Visualization of the ablation results on the Occ-ScanNet\ndataset   [ 91 ].   Introducing   AdaSFormer   significantly   improves   the\nmodel’s   capability   to   capture   spatial   and   semantic   relationships,\nleading to more complete and coherent object completion.\nBoth NYUv2 and Occ-ScanNet are annotated with the same\n12 semantic classes:   one for empty (free space) and eleven\nfor typical indoor categories,   including  ceiling ,   floor ,   wall ,\nwindow ,   chair ,   bed ,   sofa ,   table ,   television ,   furniture ,   and\nmiscellaneous objects ."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "evaluation protocol of SSCNet [ 64 ]. In semantic scene com-\npletion (SSC), performance is measured using the intersec-\ntion   over   union   (IoU)   between   predicted   and   ground-truth\nvoxel   labels   for   each   semantic   class,   and   the   overall   accu-\nracy is reported as the mean IoU (mIoU) across all classes.\nFor scene completion (SC), voxels are classified into empty\nor occupied, and performance is evaluated using IoU."
+    },
+    {
+      "section": "Implementation   details.   We   implement   our   approach   us-",
+      "text": "ing   the   PyTorch   framework.   The   model   is   optimized   with\nstochastic   gradient   descent   (SGD),   starting   from   an   initial\nlearning rate of  0 . 1  for NYUv2 and  0 . 003  for Occ-ScanNet,\nwhich is adjusted according to the polynomial learning rate\npolicy.   We train the network for 100 epochs.   The output 3D\nfeature maps have dimensions of  60  ×  36  ×  60  for NYUv2\nand   60  ×  60  ×  36   for   Occ-ScanNet.   All   experiments   are\nconducted on an NVIDIA A100 GPU.\nTable 2.   Comparisons among state-of-the-art MSSC methods  on the  Occ-ScanNet  dataset [ 91 ].   The symbol  †  denotes the results\npresented by [ 4 ].   The Best and 2nd Best scores from each metric are highlighted in Orange and Teal, respectively.   Symbol * denotes the\nresults obtained using their official code trained on the Occ-ScanNet dataset.\nMethod\nVenue\nIoU (%)\n■ ceiling\n■ floor\n■ wall\n■ window\n■ chair\n■ bed\n■ sofa\n■ table\n■ tvs\n■ furniture\n■ objects\nmIoU (%)\nTPVFormer [ 23 ]"
+    },
+    {
+      "section": "CVPR’23",
+      "text": "33 . 39\n6 . 96\n32 . 97\n14 . 41\n9 . 10\n24 . 01\n41 . 49\n45 . 44\n28 . 61\n10 . 66\n35 . 37\n25 . 31\n24 . 94\nGaussianFormer [ 24 ]"
+    },
+    {
+      "section": "ECCV’24",
+      "text": "40 . 91\n20 . 70\n42 . 00\n23 . 40\n17 . 40\n27 . 0\n44 . 30\n44 . 80\n32 . 70\n15 . 30\n36 . 70\n25 . 00\n29 . 93\nMonoScene [ 4 ]"
+    },
+    {
+      "section": "CVPR’22",
+      "text": "41 . 60\n15 . 17\n44 . 71\n22 . 41\n12 . 55\n26 . 11\n27 . 03\n35 . 91\n28 . 32\n6 . 57\n32 . 16\n19 . 84\n24 . 62"
+    },
+    {
+      "section": "ECCV’24",
+      "text": "42 . 16\n19 . 88\n41 . 88\n22 . 37\n16 . 98\n29 . 09\n42 . 43\n42 . 00\n29 . 60\n10 . 62\n36 . 36\n24 . 61\n28 . 71\nSurroundOCC [ 76 ]"
+    },
+    {
+      "section": "ICCV’23",
+      "text": "42 . 52\n18 . 90\n49 . 30\n24 . 80\n18 . 00\n26 . 80\n42 . 00\n44 . 10\n32 . 90\n18 . 60\n36 . 80\n26 . 90\n30 . 83"
+    },
+    {
+      "section": "Ours",
+      "text": "54 . 63\n37 . 66\n57 . 34\n40 . 51\n29 . 49\n43 . 29\n60 . 41\n63 . 08\n47 . 05\n29 . 63\n54 . 08\n36 . 15\n45 . 33\nTable 3.   Ablation study on the core compo-\nnents in the proposed framework."
+    },
+    {
+      "section": "SSC-mIoU  (%)  ↑",
+      "text": "Baseline\n47 . 43\n28 . 68\n+  ASA\n50 . 11  ( +2 . 68 )\n30 . 98  ( +2 . 30 )\n+  CRPE   50 . 71  ( +0 . 60 )\n31 . 66  ( +0 . 68 )\n+  CMF"
+    },
+    {
+      "section": ". 50  ( +0 . 84 )",
+      "text": "Table   4.   Ablation   study   on   different   Adap-\ntive Serialized Attention configurations."
+    },
+    {
+      "section": "SSC-mIoU  (%)  ↑",
+      "text": "Baseline\n47 . 43\n28 . 68\n+ VanillaShift\n49 . 76  ( +2 . 33 )\n30 . 61  ( +1 . 93 )\n+ GumbelShift\n50 . 87  ( +1 . 11 )\n31 . 96  ( +1 . 35 )\n+ AnnealedShift   51 . 33  ( +0 . 46 )"
+    },
+    {
+      "section": ". 50  ( +0 . 54 )",
+      "text": "Table   5.\nAblation   study   on   the   Center-\nRelative Positional Encoding setups."
+    },
+    {
+      "section": "SC-IoU  (%)  ↑ SSC-mIoU  (%)  ↑",
+      "text": "w/o  CRPE\n50 . 85\n32 . 06\nw/o  PVM\n50 . 89\n32 . 11\nw/o  RYP\n50 . 96\n32 . 23\nwith  CRPE"
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "comparisons are presented in Tables   1  and   2 . It can be seen\nthat our method achieves the best performance on the SSC\ntask.   On   the   NYU   v2   dataset,   our   approach   surpasses   the\ncurrent state-of-the-art method, ISO, by  1 . 25  mIoU, achiev-\ning a total of  32 . 50  mIoU. Similarly, on the OCC-ScanNet\ndataset,   our   method   outperforms   the   best   existing   method,\nISO, by  14 . 50  mIoU, reaching  45 . 33  mIoU."
+    },
+    {
+      "section": "Qualitative   Assessments.   The   Fig.   5   presents   the   visual",
+      "text": "comparison   results   of   our   method,   the   Baseline,   and   the"
+    },
+    {
+      "section": "Method",
+      "text": "that our approach achieves superior performance in the Se-\nmantic Scene Completion (SSC) task.   Benefiting from the\nproposed   AdaSFormer   model,   our   method   is   able   to   ob-\ntain   a   sufficiently   large   receptive   field   in   the   early   stages\nof   the   network,   enabling   more   effective   capture   of   global\nspatial   structures   and   enhancing   the   completeness   and   se-\nmantic consistency of the overall reconstruction.   As shown\nin   Fig.   5 ,   it   is   evident   that   the   increased   receptive   field   fa-\ncilitates   more   accurate   scene   completion   and   enhances   the\nability to distinguish between different objects in the scene."
+    },
+    {
+      "section": ". Ablation Study",
+      "text": "We present exhaustive ablation experiments on the NYUv2\ndataset   [ 63 ]   to   evaluate   the   effectiveness   of   our   method\nfrom   several   perspectives,   focusing   on   key   components\nsuch   as   Adaptive   Serialized   Attention   (ASA)   and   Center-\nRelative   Positional   Encoding   (CRPE).   Due   to   space   con-\nstraints, more details and visualizations are provided in the\nsupplementary material."
+    },
+    {
+      "section": "The Effectiveness of Core Components.   Firstly,   we con-",
+      "text": "duct a systematic ablation study on the core components of\nproposed   AdaSFormer,   including   the   Adaptive   Serialized\nTransformer   (ASA),   Center-Relative   Positional   Encoding\n(CRPE), and Conv-Modulated Former Block (CMF). By re-\nmoving each module individually, we quantitatively analyze\nthe   contribution   of   each   component   to   the   overall   perfor-\nmance,   thereby   gaining   a   deeper   understanding   of   the   ra-\ntionale and advantages behind our design.   The experimen-\ntal   results   are   presented   in   the   Tab.   3 ,   where   ASA,   CRPE,\nand CMF denote the corresponding modules, and Baseline\nrefers   to   the   network   with   all   three   modules   removed,   re-\ntaining   only   the   remaining   convolutional   structure.   By   in-\ncorporating ASA, we can observe an improvement over the\nbaseline   of   2 . 68   in   IoU   and   2 . 30   in   mIoU.   Adding   CRPE\nfurther   increases   the   performance   by   0 . 60   in   IoU   and   0 . 68\nin   mIoU,   while   the   inclusion   of   CMF   brings   an   additional\nimprovement of  0 . 62  in IoU and  0 . 84  in mIoU.\nFurthermore,   we   present   visualization   results   compar-\ning the model with and without the AdaSFormer module to\nmore intuitively demonstrate its effectiveness.   As shown in\nFig.  4 , incorporating the AdaSFormer module significantly\nenhances the model’s spatial perception capability, enabling\nit to better capture the spatial layout and semantic relation-\nships among objects in the scene.   Consequently, the model\ncan more effectively recover occluded or missing structures\nin complex environments."
+    },
+    {
+      "section": "Design   Choices   of   Adaptive   Serialized   Attention.",
+      "text": "We\nalso   perform   ablation   experiments   on   several   key   design\nchoices   of   the   Adaptive   Serialized   Attention,   including\n(a) RGB input\n(b) GT\n(c) ISO\n(d) Baseline\n(e) AdaSFormer\nCeil\nWin.\nFloor\nWall\nChair\nBed\nSofa\nTable"
+    },
+    {
+      "section": "TV",
+      "text": "Furn.\nObjects\nFigure 5.   Qualitative Comparisons  of semantic scene completion results on the NYUv2 testset [ 63 ] with different methods.   Figures from\nleft to right:   (a) The single RGB input; (b) The ground truth; (c) ISO [ 91 ]; (d) Baseline; and (e) Our proposed method.\nTable 6.   Latency (in  ms ) study on each component."
+    },
+    {
+      "section": "w/o CMLN",
+      "text": "Latency\n535 . 2\n178 . 9"
+    },
+    {
+      "section": ". 0",
+      "text": "177 . 4\n174 . 3\nVanilla   Serialized   Transformer,   Gumbel-Softmax   learning,\nand   the   temperature   annealing   strategy.\nAs   illustrated\nin   Tab.   4 ,   ‘Baseline’   represents   the   model   without   the\nAdaptive Serialized Transformer block.   ‘VanillaShift’ uses\ntorch.nn.Parameter  to directly learn  n  discrete shifts\nfor  n  serialized intervals. ‘GumbelShift’ adopts the straight-\nthrough Gumbel-Softmax for discrete shift learning.   In ad-\ndition,   the   temperature   annealing   strategy   is   introduced   to\nprogressively   adjust   the   Gumbel-Softmax   during   training.\nWe observe that introducing Gumbel-Softmax improves the"
+    },
+    {
+      "section": "SSC   performance   by   1 . 35   mIoU,   while   further   applying",
+      "text": "temperature annealing brings an additional  0 . 54  mIoU gain,\ndemonstrating the effectiveness of these strategies in stabi-\nlizing optimization and enhancing adaptive shift learning."
+    },
+    {
+      "section": "ing.",
+      "text": "We   further   validate   two   key   design   choices   of\nthe center-relative positional encoding, including projected\nvoxel   mean   (PVM)   and   the   effectiveness   of   relative   yaw\nand   pitch   positional   encoding   (RPY).   As   shown   in   Tab.   5 ,\nfor NYU v2, we observe that replacing the projected voxel\nmean   (PVM)   with   the   scene   physical   center   at   position\n[30 ,  18 ,  30]  results in a drop of  0 . 39  mIoU, while removing\nthe relative yaw and pitch positional encoding (RYP) leads\nto a decrease of  0 . 27  mIoU."
+    },
+    {
+      "section": "Effect of Key Components on Computational Efficiency.",
+      "text": "In   the   end,   we   evaluate   the   computational   efficiency   of\neach   component,   including   Adaptive   Serialized   Attention"
+    },
+    {
+      "section": "(ASA),   Center-Relative   Positional   Encoding   (CRPE),   and",
+      "text": "Convolution-Modulated Layer Normalization (CMLN). As\nshown   in   Tab.   6 ,   AdaSFormer   achieves   a   latency   of   178 . 9\nms,   which is significantly lower than ISO [ 91 ] ( 535 . 2  ms),\ndemonstrating   the   efficiency   of   the   proposed   architecture.\nRemoving   individual   modules   leads   to   only   marginal   la-\ntency   variations   ( 156 . 0   ms   without   ASA,   177 . 4   ms   with-\nout   CRPE,   and   174 . 3   ms   without   CMLN),   indicating   that\nall   components   are   lightweight.   ASA   introduces   a   small\noverhead of  22 . 9  ms while contributing substantially to per-\nformance improvement, confirming the balance between ef-\nficiency and accuracy."
+    },
+    {
+      "section": "Conclusion",
+      "text": "In this paper, we propose a novel Adaptive Serialized Trans-\nformer (AdaSFormer) framework for indoor monocular se-\nmantic scene completion, which incorporates three key de-\nsigns:   1)   an   Adaptive   Serialized   Attention   that   enables   a\nlarger,   high-resolution,   and   adaptive   receptive   field;   2)   a\nCenter-Relative   Positional   Encoding   that   captures   the   spa-\ntial   information   richness   to   better   represent   scene   struc-\nture;   and   3)   a   Conv-Modulated   Layer   Normalization   that\nfacilitates the integration of Transformer and convolutional\narchitectures,   leading   to   a   lightweight   yet   effective   de-\nsign.   Extensive   experiments   on   NYUv2   and   Occ-ScanNet\ndemonstrate the superiority of our method, achieving state-\nof-the-art performance across multiple datasets."
+    },
+    {
+      "section": "Acknowledgments",
+      "text": "This   work   was   supported   by   the   National   Natural   Science\nFoundation of China under Grant No. 62071330.\nThe   authors   would   like   to   sincerely   thank   the   Program\nChairs, Area Chairs,   and Reviewers for the time and effort\ndevoted during the review process."
+    },
+    {
+      "section": "References",
+      "text": "[1]   Panos Achlioptas,   Olga   Diamanti,   Ioannis   Mitliagkas,   and\nLeonidas Guibas.   Learning representations and generative\nmodels   for   3D   point   clouds.   In   International   Conference\non Machine Learning , pages 40–49. PMLR, 2018.\n[2]   Jongseong   Bae,   Junwoo   Ha,   and   Ha   Young   Kim.   Three\ncars approaching within 100M! enhancing distant geometry\nby tri-axis voxel scanning for camera-based semantic scene\ncompletion.   In  IEEE/CVF Conference on Computer Vision\nand Pattern Recognition , pages 11939–11948, 2025.\n[3]   Hengwei   Bian   et   al.   DynamicCity:   Large-scale   4D   occu-\npancy   generation   from   dynamic   scenes.   In   International\nConference on Learning Representations , 2025.\n[4]   Anh-Quan   Cao   and   Raoul   De   Charette.\nMonoScene:\nMonocular   3D   semantic   scene   completion.   In   IEEE/CVF\nConference   on   Computer   Vision   and   Pattern   Recognition ,\npages 3991–4001, 2022.\n[5]   Runnan   Chen   et   al.   CLIP2Scene:   Towards   label-efficient"
+    },
+    {
+      "section": "D   scene   understanding   by   CLIP.   In   IEEE/CVF   Confer-",
+      "text": "ence   on   Computer   Vision   and   Pattern   Recognition ,   pages\n7020–7030, 2023.\n[6]   Runnan Chen et al. Towards label-free scene understanding\nby vision foundation models.   In  Advances in Neural Infor-\nmation Processing Systems , pages 75896–75910, 2023.\n[7]   Wanli   Chen,   Xinge   Zhu,   Guojin   Chen,   and   Bei   Yu.   Effi-\ncient point cloud analysis using Hilbert curve.   In  European\nConference on Computer Vision , pages 730–747. Springer,\n2022.\n[8]   Xiaokang   Chen,   Kwan-Yee   Lin,   Chen   Qian,   Gang   Zeng,\nand Hongsheng Li.   3D sketch-aware semantic scene com-\npletion   via   semi-supervised   structure   prior.   In   IEEE/CVF\nConference   on   Computer   Vision   and   Pattern   Recognition ,\npages 4193–4202, 2020.\n[9]   Yukang   Chen,   Jianhui   Liu,   Xiangyu   Zhang,   Xiaojuan   Qi,\nand   Jiaya   Jia.   LargeKernel3D:   Scaling   up   kernels   in   3D\nsparse   CNNs.   In   IEEE/CVF   Conference   on   Computer   Vi-\nsion and Pattern Recognition , pages 13488–13498, 2023.\n[10]   Yongwei Chen, Tengfei Wang, Tong Wu, Xingang Pan, Kui\nJia,   and   Ziwei   Liu.   ComboVerse:   Compositional   3D   as-\nsets   creation   using   spatially-aware   diffusion   guidance.   In\nEuropean Conference on Computer Vision , pages 128–146.\nSpringer, 2024.\n[11]   Christopher   B   Choy,   Danfei   Xu,   JunYoung   Gwak,   Kevin\nChen, and Silvio Savarese.   3D-R2N2:   A unified approach\nfor single and multi-view 3D object reconstruction.   In  Eu-\nropean   Conference   on   Computer   Vision ,   pages   628–644.\nSpringer, 2016.\n[12]   Tao Chu,   Pan Zhang,   Qiong Liu,   and Jiaqi Wang.   BUOL:"
+    },
+    {
+      "section": "A   bottom-up   framework   with   occupancy-aware   lifting   for",
+      "text": "panoptic   3D   scene   reconstruction   from   a   single   image.   In"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 4937–4946, 2023.\n[13]   Manuel   Dahnert,   Ji   Hou,   Matthias   Nießner,   and   Angela\nDai.   Panoptic   3D   scene   reconstruction   from   a   single   rgb\nimage.   Advances   in   Neural   Information   Processing   Sys-\ntems , 34:8282–8293, 2021.\n[14]   Xiaohan   Ding,\nXiangyu   Zhang,\nJungong   Han,\nand\nGuiguang   Ding.\nScaling   up   your   kernels   to   31x31:   Re-\nvisiting large kernel design in cnns.   In  IEEE/CVF Confer-\nence   on   Computer   Vision   and   Pattern   Recognition ,   pages\n11963–11975, 2022.\n[15]   Haoqiang Fan, Hao Su, and Leonidas J Guibas.   A point set\ngeneration network for 3D object reconstruction from a sin-\ngle   image.   In   IEEE/CVF   Conference   on   Computer   Vision\nand Pattern Recognition , pages 605–613, 2017.\n[16]   Sicheng   Feng,   Song   Wang,   Shuyi   Ouyang,   et   al.\nCan\nMLLMs   guide   me   home?\na   benchmark   study   on   fine-\ngrained visual reasoning from transit maps.   arXiv preprint\narXiv:2505.18675 , 2025.\n[17]   Tuo   Feng,   Wenguan   Wang,   Fan   Ma,   and   Yi   Yang.\nLSK3DNet:   Towards effective and efficient 3D perception\nwith   large   sparse   kernels.\nIn   IEEE/CVF   Conference   on\nComputer   Vision   and   Pattern   Recognition ,   pages   14916–\n14927, 2024.\n[18]   Daoyi   Gao,   D´avid   Rozenberszki,   Stefan   Leutenegger,   and\nAngela Dai.   Diffcad:   Weakly-supervised probabilistic cad\nmodel   retrieval   and   alignment   from   an   RGB   image.   ACM\nTransactions on Graphics , 43(4):1–15, 2024.\n[19]   Can   G¨umeli,   Angela   Dai,   and   Matthias   Nießner.\nRoca:\nRobust   CAD   model   retrieval   and   alignment   from   a   single\nimage.   In  IEEE/CVF Conference on Computer Vision and\nPattern Recognition , pages 4022–4031, 2022.\n[20]   Kai   Han,   Yunhe   Wang,   Hanting   Chen,   Xinghao   Chen,\nJianyuan   Guo,   Zhenhua   Liu,   Yehui   Tang,   An   Xiao,   Chun-\njing Xu, Yixing Xu, et al.   A survey on vision transformer.\nIEEE Transactions on Pattern Analysis and Machine Intel-\nligence , 45(1):87–110, 2022.\n[21]   Ankur   Handa,   Viorica   Patraucean,   Vijay   Badrinarayanan,\nSimon   Stent,   and   Roberto   Cipolla.\nSceneNet:   Under-\nstanding   real   world   indoor   scenes   with   synthetic   data.   In"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 4077–4085, 2016.\n[22]   Chenhang He, Ruihuang Li, Shuai Li, and Lei Zhang. Voxel\nset transformer: A set-to-set approach to 3d object detection\nfrom point clouds.   In  IEEE/CVF Conference on Computer\nVision and Pattern Recognition , pages 8417–8427, 2022.\n[23]   Yuanhui   Huang,   Wenzhao   Zheng,   Yunpeng   Zhang,   Jie\nZhou, and Jiwen Lu.   Tri-perspective view for vision-based"
+    },
+    {
+      "section": "D   semantic   occupancy   prediction.   In   IEEE/CVF   Confer-",
+      "text": "ence   on   Computer   Vision   and   Pattern   Recognition ,   pages\n9223–9232, 2023.\n[24]   Yuanhui   Huang,   Wenzhao   Zheng,   Yunpeng   Zhang,   Jie\nZhou, and Jiwen Lu.   GaussianFormer:   Scene as gaussians\nfor vision-based 3D semantic occupancy prediction.   In  Eu-\nropean   Conference   on   Computer   Vision ,   pages   376–393.\nSpringer, 2024.\n[25]   Maximilian Jaritz, Tuan-Hung Vu, Raoul de Charette, Emi-\nlie Wirbel, and Patrick P´erez.   xMUDA: Cross-modal unsu-\npervised domain adaptation for 3D semantic segmentation.\nIn  IEEE/CVF Conference on Computer Vision and Pattern\nRecognition , pages 12605–12614, 2020.\n[26]   Haoyi Jiang, Tianheng Cheng, Naiyu Gao, Haoyang Zhang,\nTianwei   Lin,   Wenyu   Liu,   and   Xinggang   Wang.\nSym-\nphonize 3D semantic scene completion with contextual in-\nstance queries.   In  IEEE/CVF Conference on Computer Vi-\nsion and Pattern Recognition , pages 20258–20267, 2024.\n[27]   Lingdong Kong, Youquan Liu, Xin Li, Runnan Chen, Wen-\nwei   Zhang,   Jiawei   Ren,   Liang   Pan,   Kai   Chen,   and   Ziwei\nLiu.   Robo3D:   Towards   robust   and   reliable   3D   perception\nagainst   corruptions.\nIn   IEEE/CVF   International   Confer-\nence on Computer Vision , pages 19994–20006, 2023.\n[28]   Lingdong   Kong,   Jiawei   Ren,   Liang   Pan,   and   Ziwei   Liu.\nLaserMix for semi-supervised LiDAR semantic segmenta-\ntion.   In   IEEE/CVF   Conference   on   Computer   Vision   and\nPattern Recognition , pages 21705–21715, 2023.\n[29]   Lingdong Kong, Xiang Xu, Jiawei Ren, et al.   Multi-modal\ndata-efficient 3D scene understanding for autonomous driv-\ning.   IEEE   Transactions   on   Pattern   Analysis   and   Machine\nIntelligence , 47(5):3748–3765, 2025.\n[30]   Lingdong Kong, Wesley Yang, Jianbiao Mei, Youquan Liu,\nAo Liang, Dekai Zhu, Dongyue Lu, Wei Yin, Xiaotao Hu,\nMingkai   Jia,   Junyuan   Deng,   Kaiwen   Zhang,   Yang   Wu,\nTianyi Yan, Shenyuan Gao, Song Wang, Linfeng Li, Liang\nPan,   Yong   Liu,   Jianke   Zhu,   Wei   Tsang   Ooi,   Steven   C.   H.\nHoi, and Ziwei Liu.   3D and 4D world modeling:   A survey.\narXiv preprint arXiv:2509.07996 , 2025.\n[31]   Lingdong Kong, Xiang Xu, Youquan Liu, Jun Cen, Runnan\nChen, Wenwei Zhang, Liang Pan, Kai Chen, and Ziwei Liu.\nLargeAD: Large-scale cross-sensor data pretraining for au-\ntonomous driving.   IEEE Transactions on Pattern Analysis\nand Machine Intelligence , 48(2):1291–1308, 2026.\n[32]   Bohan Li, Jiajun Deng, Wenyao Zhang, Zhujin Liang, Da-\nlong Du, Xin Jin, and Wenjun Zeng.   Hierarchical temporal\ncontext learning for camera-based semantic scene comple-\ntion.   In   European   Conference   on   Computer   Vision ,   pages\n131–148. Springer, 2024.\n[33]   Jie   Li,   Yu   Liu,   Dong   Gong,   Qinfeng   Shi,   Xia   Yuan,   and\nChunxia   Zhao.   RGBD   based   dimensional   decomposition\nresidual   network   for   3D   semantic   scene   completion.\nIn"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 7693–7702, 2019.\n[34]   Jie   Li,   Kai   Han,   Peng   Wang,   Yu   Liu,   and   Xia   Yuan.\nAnisotropic convolutional networks for 3D semantic scene\ncompletion.   In  IEEE/CVF Conference on Computer Vision\nand Pattern Recognition , pages 3351–3359, 2020.\n[35]   Jinke   Li,   Xiao   He,   Chonghua   Zhou,   Xiaoqiang   Cheng,\nYang   Wen,   and   Dan   Zhang.   ViewFormer:   Exploring   spa-\ntiotemporal modeling for multi-view 3D occupancy percep-\ntion via view-guided transformers. In  European Conference\non Computer Vision , pages 90–106. Springer, 2024.\n[36]   Rong   Li,   Yuhao   Dong,   Tianshuai   Hu,   Ao   Liang,   et   al."
+    },
+    {
+      "section": "EED:   Ground   everything   everywhere   in   3D.",
+      "text": "arXiv\npreprint arXiv:2511.01755 , 2025.\n[37]   Rong   Li   et   al.   SeeGround:   See   and   ground   for   zero-shot\nopen-vocabulary 3D visual grounding.   In  IEEE/CVF Con-\nference on Computer Vision and Pattern Recognition , pages\n3707–3717, 2025.\n[38]   Yanwei Li, Yilun Chen, Xiaojuan Qi, Zeming Li, Jian Sun,\nand   Jiaya   Jia.\nUnifying   voxel-based   representation   with\ntransformer   for   3d   object   detection.   Advances   in   Neural\nInformation Processing Systems , 35:18442–18455, 2022.\n[39]   Yiming   Li,   Zhiding   Yu,   Christopher   Choy,   Chaowei   Xiao,\nJose   M   Alvarez,   Sanja   Fidler,   Chen   Feng,   and   Anima\nAnandkumar.\nVoxFormer:   Sparse   voxel   transformer   for\ncamera-based 3D semantic scene completion. In  IEEE/CVF\nConference   on   Computer   Vision   and   Pattern   Recognition ,\npages 9087–9098, 2023.\n[40]   Ye Li, Lingdong Kong, Hanjiang Hu, Xiaohao Xu, and Xi-\naonan Huang.   Is your LiDAR placement optimized for 3D\nscene   understanding?   In   Advances   in   Neural   Information\nProcessing Systems , pages 34980–35017, 2024.\n[41]   Ao   Liang   et   al.\nLiDARCrafter:\nDynamic   4D   world\nmodeling   from   LiDAR   sequences.\narXiv   preprint\narXiv:2508.03692 , 2025.\n[42]   Ao   Liang   et   al.   Perspective-invariant   3D   object   detection.\nIn   IEEE/CVF   International   Conference   on   Computer   Vi-\nsion , pages 27725–27738, 2025.\n[43]   Haolin Liu, Yujian Zheng, Guanying Chen, Shuguang Cui,\nand   Xiaoguang   Han.\nTowards   high-fidelity   single-view\nholistic   reconstruction   of   indoor   scenes.\nIn   European\nConference on Computer Vision , pages 429–446. Springer,\n2022.\n[44]   Ruoshi   Liu,   Rundi   Wu,   Basile   Van   Hoorick,   Pavel   Tok-\nmakov,   Sergey Zakharov,   and Carl Vondrick.   Zero-1-to-3:\nZero-shot   one   image   to   3D   object.   In   IEEE/CVF   Interna-\ntional   Conference   on   Computer   Vision ,   pages   9298–9309,\n2023.\n[45]   Shice Liu, Yu Hu, Yiming Zeng, Qiankun Tang, Beibei Jin,\nYinhe Han, and Xiaowei Li.   See and think:   Disentangling\nsemantic   scene   completion.   In   Advances   in   Neural   Infor-\nmation Processing Systems , pages 261–272, 2018.\n[46]   Youquan Liu et al.   Segment any point cloud sequences by\ndistilling   vision   foundation   models.   In   Advances   in   Neu-\nral   Information   Processing   Systems ,   pages   37193–37229,\n2023.\n[47]   Youquan   Liu   et   al.   Multi-space   alignments   towards   uni-\nversal LiDAR segmentation.   In  IEEE/CVF Conference on\nComputer   Vision   and   Pattern   Recognition ,   pages   14648–\n14661, 2024.\n[48]   Youquan Liu et al.   La La LiDAR: Large-scale layout gen-\neration from LiDAR data.   In  AAAI Conference on Artificial\nIntelligence , pages 7377–7385, 2026.\n[49]   Youquan   Liu   et   al.   Veila:   Panoramic   LiDAR   generation\nfrom a monocular RGB image.   In  IEEE International Con-\nference on Robotics and Automation , 2026.\n[50]   Ze Liu, Yutong Lin, Yue Cao, Han Hu, Yixuan Wei, Zheng\nZhang,   Stephen   Lin,   and   Baining   Guo.   Swin   transformer:\nHierarchical vision transformer using shifted windows.   In"
+    },
+    {
+      "section": "IEEE/CVF   International   Conference   on   Computer   Vision ,",
+      "text": "pages 10012–10022, 2021.\n[51]   Zhijian   Liu,   Xinyu   Yang,   Haotian   Tang,   Shang   Yang,   and\nSong Han.   Flatformer:   Flattened window attention for ef-\nficient   point   cloud   transformer.   In   IEEE/CVF   Conference\non Computer Vision and Pattern Recognition , pages 1200–\n1211, 2023.\n[52]   Tao   Lu,   Xiang   Ding,   Haisong   Liu,   Gangshan   Wu,   and\nLimin   Wang.   Link:   Linear   kernel   for   lidar-based   3d   per-\nception.   In  IEEE/CVF Conference on Computer Vision and\nPattern Recognition , pages 1105–1115, 2023.\n[53]   Jiageng Mao, Yujing Xue, Minzhe Niu, Haoyue Bai, Jiashi\nFeng,   Xiaodan   Liang,   Hang   Xu,   and   Chunjing   Xu.   Voxel\ntransformer for 3d object detection.   In  IEEE/CVF Interna-\ntional   Conference   on   Computer   Vision ,   pages   3164–3173,\n2021.\n[54]   Lars Mescheder, Michael Oechsle, Michael Niemeyer, Se-\nbastian   Nowozin,   and   Andreas   Geiger.\nOccupancy   net-\nworks:   Learning   3D   reconstruction   in   function   space.   In"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 4460–4470, 2019.\n[55]   Jeong   Joon   Park,   Peter   Florence,   Julian   Straub,   Richard\nNewcombe,   and   Steven   Lovegrove.\nDeepSDF:   Learning\ncontinuous signed distance functions for shape representa-\ntion.   In   IEEE/CVF   Conference   on   Computer   Vision   and\nPattern Recognition , pages 165–174, 2019.\n[56]   William Peebles and Saining Xie.   Scalable diffusion mod-\nels with transformers.   In  IEEE/CVF International Confer-\nence on Computer Vision , pages 4195–4205, 2023.\n[57]   Songyou   Peng,   Michael   Niemeyer,   Lars   Mescheder,   Marc\nPollefeys,   and   Andreas   Geiger.   Convolutional   occupancy\nnetworks.   In   European   Conference   on   Computer   Vision ,\npages 523–540. Springer, 2020.\n[58]   Christoph   B   Rist,   David   Emmerichs,   Markus   Enzweiler,\nand   Dariu   M   Gavrila.\nSemantic   scene   completion   using\nlocal deep implicit functions on lidar data.   IEEE Transac-\ntions on Pattern Analysis and Machine Intelligence , 44(10):\n7205–7218, 2021.\n[59]   Jason   Rock,   Tanmay   Gupta,   Justin   Thorsen,   JunYoung\nGwak,   Daeyun   Shin,   and   Derek   Hoiem.   Completing   3D\nobject shape from one depth image.   In  IEEE/CVF Confer-\nence   on   Computer   Vision   and   Pattern   Recognition ,   pages\n2484–2493, 2015.\n[60]   Luis   Roldao   et   al.   LMSCNet:   Lightweight   multiscale   3D\nsemantic   completion.   In   International   Conference   on   3D\nVision , pages 111–119, 2020.\n[61]   Anith Selvakumar and Manasa Bharadwaj.   Fake it to make\nit:   Virtual multiviews to enhance monocular indoor seman-\ntic   scene   completion.\narXiv   preprint   arXiv:2503.05086 ,\n2025.\n[62]   Yiang Shi,   Tianheng Cheng,   Qian Zhang,   Wenyu Liu,   and\nXinggang Wang.   Occupancy as set of points.   In  European\nConference   on   Computer   Vision ,   pages   72–87.   Springer,\n2024.\n[63]   Nathan Silberman, Derek Hoiem, Pushmeet Kohli, and Rob\nFergus.   Indoor   segmentation   and   support   inference   from\nRGB-D images.   In  European Conference on Computer Vi-\nsion , pages 746–760. Springer, 2012.\n[64]   Shuran   Song,   Fisher   Yu,   Andy   Zeng,   Angel   X.   Chang,\nManolis   Savva,   and   Thomas   Funkhouser.   Semantic   scene\ncompletion from a single depth image.   In  IEEE/CVF Con-\nference on Computer Vision and Pattern Recognition , pages\n1746–1754, 2017.\n[65]   Mingxing   Tan   and   Quoc   Le.\nEfficientnet:   Rethinking\nmodel   scaling   for   convolutional   neural   networks.\nIn   In-\nternational Conference on Machine Learning , pages 6105–"
+    },
+    {
+      "section": ". PMLR, 2019.",
+      "text": "[66]   Ashish   Vaswani,   Noam   Shazeer,   Niki   Parmar,   Jakob\nUszkoreit,   Llion   Jones,   Aidan   N   Gomez,   Łukasz   Kaiser,\nand Illia Polosukhin. Attention is all you need. In  Advances\nin Neural Information Processing Systems , 2017.\n[67]   Peng-Shuai   Wang.   Octformer:   Octree-based   transformers\nfor   3D   point   clouds.   ACM   Transactions   on   Graphics ,   42\n(4):1–11, 2023.\n[68]   Song   Wang,   Yu   Jiawei,   Li   Wentong,   Liu   Wenyu,   Liu   Xi-\naolu,   Chen   Junbo,   and   Zhu   Jianke.\nNot   all   voxels   are\nequal:   Hardness-aware   semantic   scene   completion   with\nself-distillation.   In  IEEE/CVF Conference on Computer Vi-\nsion and Pattern Recognition , pages 14792–14801, 2024.\n[69]   Song Wang, Jiawei Yu, Wentong Li, Hao Shi, Kailun Yang,\nJunbo Chen, and Jianke Zhu. Label-efficient semantic scene\ncompletion with scribble annotations. In  International Joint\nConference   on   Artificial   Intelligence ,   pages   1398–1406,\n2024.\n[70]   Song Wang, Xiaolu Liu, et al.   PointLoRA: Low-rank adap-\ntation   with   token   selection   for   point   cloud   learning.\nIn"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 6605–6615, 2025.\n[71]   Song   Wang,   Zhongdao   Wang,   Jiawei   Yu,   Wentong   Li,\nBailan   Feng,   Junbo   Chen,   and   Jianke   Zhu.   Reliable   and\ncalibrated semantic occupancy prediction by hybrid uncer-\ntainty learning.   In  International Joint Conference on Artifi-\ncial Intelligence , pages 1973–1981, 2025.\n[72]   Song Wang et al.   Forging spatial intelligence:   A roadmap\nof   multi-modal   data   pre-training   for   autonomous   systems.\narXiv preprint arXiv:2512.24385 , 2025.\n[73]   Xuzhi Wang, Di Lin, and Liang Wan. FFNet: Frequency fu-\nsion network for semantic scene completion.   In  AAAI Con-\nference on Artificial Intelligence , pages 2550–2557, 2022.\n[74]   Xuzhi   Wang,   Xinran   Wu,   Song   Wang,   et   al.   Monocular\nsemantic scene completion via masked recurrent networks.\nIn   IEEE/CVF   Conference   on   International   Conference   on\nComputer Vision , 2025.\n[75]   Xuzhi Wang et al.   NUC-Net:   Non-uniform cylindrical par-\ntition network for efficient LiDAR semantic segmentation.\nIEEE Transactions on Circuits and Systems for Video Tech-\nnology , 35(9):9090–9104, 2025.\n[76]   Yi   Wei,   Linqing   Zhao,   Wenzhao   Zheng,   Zheng   Zhu,\nJie   Zhou,   and   Jiwen   Lu.\nSurroundOCC:   Multi-camera"
+    },
+    {
+      "section": "D   occupancy   prediction   for   autonomous   driving.",
+      "text": "In"
+    },
+    {
+      "section": "IEEE/CVF   International   Conference   on   Computer   Vision ,",
+      "text": "pages 21729–21740, 2023.\n[77]   Xiaoyang   Wu,   Li   Jiang,   Peng-Shuai   Wang,   Zhijian   Liu,\nXihui   Liu,   Yu   Qiao,   Wanli   Ouyang,   Tong   He,   and   Heng-\nshuang Zhao. Point transformer v3: Simpler faster stronger.\nIn  IEEE/CVF Conference on Computer Vision and Pattern\nRecognition , pages 4840–4851, 2024.\n[78]   Zhaoyang Xia, Youquan Liu, Xin Li, Xinge Xu, Yuexin Ma,\nYikang Li,   Yuenan Hou,   and Yu Qiao.   SCPNet:   Semantic\nscene completion on point cloud.   In  IEEE/CVF Conference\non Computer Vision and Pattern Recognition , pages 17642–\n17651, 2023.\n[79]   Shaoyuan Xie et al.   Are VLMs ready for autonomous driv-\ning?   an empirical study from the reliability, data, and met-\nric perspectives. In  IEEE/CVF International Conference on\nComputer Vision , pages 6585–6597, 2025.\n[80]   Shaoyuan   Xie   et   al.   Benchmarking   and   improving   bird’s\neye   view   perception   robustness   in   autonomous   driving.\nIEEE Transactions on Pattern Analysis and Machine Intel-\nligence , 47(5):3878–3894, 2025.\n[81]   Jingyi   Xu   et   al.\nVisual   foundation   models   boost   cross-\nmodal   unsupervised   domain   adaptation   for   3D   semantic\nsegmentation."
+    },
+    {
+      "section": "IEEE   Transactions   on   Intelligent   Trans-",
+      "text": "portation Systems , 26(11):20287–20301, 2025.\n[82]   Xiang Xu et al. 4D contrastive superflows are dense 3D rep-\nresentation learners.   In  European Conference on Computer\nVision , pages 58–80, 2024.\n[83]   Xiang Xu et   al.   FRNet:   Frustum-range   networks for scal-\nable   LiDAR   segmentation.   IEEE   Transactions   on   Image\nProcessing , 34:2173–2186, 2025.\n[84]   Xiang Xu et al.   Beyond one shot, beyond one perspective:\nCross-view   and   long-horizon   distillation   for   better   LiDAR\nrepresentations.   In  IEEE/CVF International Conference on\nComputer Vision , pages 25506–25518, 2025.\n[85]   Xiang Xu et al.   LiMoE: Mixture of LiDAR representation\nlearners from automotive scenes.   In  IEEE/CVF Conference\non Computer Vision and Pattern Recognition , pages 27368–\n27379, 2025.\n[86]   Xiang   Xu   et   al.   Enhanced   spatiotemporal   consistency   for\nimage-to-LiDAR   data   pretraining.   IEEE   Transactions   on\nPattern   Analysis   and   Machine   Intelligence ,   48(3):3819–\n3834, 2026.\n[87]   Kai   Yan,   Fujun   Luan,   Miloˇs   Haˇsan,   Thibault   Groueix,\nValentin   Deschaintre,   and   Shuang   Zhao.   Psdr-room:   Sin-\ngle   photo   to   scene   using   differentiable   rendering.   In   SIG-\nGRAPH Asia , pages 1–11, 2023.\n[88]   Xu Yan,   Jiantao Gao,   Jie Li,   Ruimao Zhang,   Zhen Li,   Rui\nHuang,   and   Shuguang   Cui.   Sparse   single   sweep   LiDAR\npoint cloud segmentation via learning contextual shape pri-\nors from scene completion.   In  AAAI Conference on Artifi-\ncial Intelligence , pages 3101–3109, 2021.\n[89]   Lihe   Yang,   Bingyi   Kang,   Zilong   Huang,   Xiaogang   Xu,\nJiashi   Feng,   and   Hengshuang   Zhao.\nDepth   anything:\nUnleashing   the   power   of   large-scale   unlabeled   data.\nIn"
+    },
+    {
+      "section": "IEEE/CVF   Conference   on   Computer   Vision   and   Pattern",
+      "text": "Recognition , pages 10371–10381, 2024.\n[90]   Jiawei   Yao,   Chuming   Li,   Keqiang   Sun,   Yingjie   Cai,   Hao\nLi, Wanli Ouyang, and Hongsheng Li.   NDC-Scene:   Boost\nmonocular   3D   semantic   scene   completion   in   normalized\ndevice coordinates space.   In  IEEE/CVF International Con-\nference on Computer Vision , pages 9421–9431, 2023.\n[91]   Hongxiao   Yu,   Yuqi   Wang,   Yuntao   Chen,   and   Zhaoxiang\nZhang.   Monocular   occupancy   prediction   for   scalable   in-\ndoor scenes.   In  European Conference on Computer Vision ,\npages 38–54, 2024.\n[92]   Cheng   Zhang,   Zhaopeng   Cui,   Yinda   Zhang,   Bing   Zeng,\nMarc   Pollefeys,   and   Shuaicheng   Liu.\nHolistic   3D   scene\nunderstanding   from   a   single   image   with   implicit   represen-\ntation.   In   IEEE/CVF   Conference   on   Computer   Vision   and\nPattern Recognition , pages 8833–8842, 2021.\n[93]   Yunpeng Zhang, Zheng Zhu, and Dalong Du.   OccFormer:\nDual-path transformer for vision-based 3D semantic occu-\npancy   prediction.   In   IEEE/CVF   International   Conference\non Computer Vision , pages 9433–9443, 2023.\n[94]   Yiyuan   Zhang,   Xiaohan   Ding,   and   Xiangyu   Yue.   Scaling\nup   your   kernels:   Large   kernel   design   in   convnets   towards\nuniversal   representations."
+    },
+    {
+      "section": "IEEE   Transactions   on   Pattern",
+      "text": "Analysis and Machine Intelligence , 2025.\n[95]   Linqing   Zhao,   Xiuwei   Xu,   Ziwei   Wang,   Yunpeng   Zhang,\nBorui   Zhang,   Wenzhao   Zheng,   Dalong   Du,   Jie   Zhou,   and\nJiwen   Lu.   LowRankOcc:   tensor   decomposition   and   low-\nrank recovery for vision-based 3D semantic occupancy pre-\ndiction.   In  IEEE/CVF Conference on Computer Vision and\nPattern Recognition , pages 9806–9815, 2024.\n[96]   Qingcheng Zhao, Xiang Zhang, Haiyang Xu, Zeyuan Chen,\nJianwen   Xie,   Yuan   Gao,   and   Zhuowen   Tu.   DEPR:   Depth\nguided single-view scene reconstruction with instance-level\ndiffusion.   arXiv preprint arXiv:2507.22825 , 2025.\n[97]   Jilai   Zheng,   Pin   Tang,   Zhongdao   Wang,   Guoqing   Wang,\nXiangxuan   Ren,   Bailan   Feng,   and   Chao   Ma.\nVeon:\nVocabulary-enhanced   occupancy   prediction.   In   European\nConference   on   Computer   Vision ,   pages   92–108.   Springer,\n2024.\n[98]   Wenzhao   Zheng,   Weiliang   Chen,   Yuanhui   Huang,   Borui\nZhang,   Yueqi   Duan,   and   Jiwen   Lu.\nOccWorld:   Learn-\ning   a   3D   occupancy   world   model   for   autonomous   driving.\nIn  European conference on computer vision ,   pages 55–72.\nSpringer, 2024.\n[99]   Yupeng   Zheng,   Xiang   Li,   Pengfei   Li,   Yuhang   Zheng,   Bu\nJin,   Chengliang   Zhong,   Xiaoxiao   Long,   Hao   Zhao,   and\nQichao Zhang. MonoOCC: Digging into monocular seman-\ntic occupancy prediction. In  IEEE International Conference\non Robotics and Automation , pages 18398–18405, 2024.\n[100]   Junsheng   Zhou,   Yu-Shen   Liu,   and   Zhizhong   Han.   Zero-\nshot   scene   reconstruction   from   single   images   with   deep\nprior assembly.  Advances in Neural Information Processing\nSystems , 37:39104–39127, 2024.\n[101]   Benjin Zhu, Zhe Wang, and Hongsheng Li.   nuCraft:   Craft-\ning high resolution 3D semantic occupancy for unified 3D\nscene understanding. In  European Conference on Computer\nVision , pages 125–141. Springer, 2024.\n[102]   Dekai   Zhu,   Yixuan   Hu,   Youquan   Liu,   et   al."
+    },
+    {
+      "section": "SPIRAL:",
+      "text": "Semantic-aware   progressive   LiDAR   scene   generation.   In\nAdvances in Neural Information Processing Systems , 2025."
+    }
+  ]
+}

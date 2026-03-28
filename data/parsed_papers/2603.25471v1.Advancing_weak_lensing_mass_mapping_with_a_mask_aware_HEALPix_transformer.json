@@ -1,0 +1,1126 @@
+{
+  "paper_id": "2603.25471v1.Advancing_weak_lensing_mass_mapping_with_a_mask_aware_HEALPix_transformer",
+  "title": "Advancing weak lensing mass mapping with a mask-aware HEALPix transformer",
+  "sections": [
+    {
+      "section": "Advancing   weak   lensing   mass   mapping   with   a   mask-aware   HEALPix   transformer",
+      "text": "Yihe   Wang   and   Yu   Yu ∗\nState   Key   Laboratory   of   Dark   Matter   Physics,   School   of   Physics   and   Astronomy,\nShanghai   Jiao   Tong   University,   Shanghai   200240,   China   and\nKey   Laboratory   for   Particle   Astrophysics   and   Cosmology   (MOE)   /\nShanghai   Key   Laboratory   for   Particle   Physics   and   Cosmology,   China\n(Received   11   November   2025;   Accepted   22   January   2026;   Published   26   February   2026)\nWe present HEALFormer, a transformer-based neural network architecture for weak gravitational\nlensing   mass   mapping   that   reconstructs   convergence   maps   from   incomplete   and   noisy   shear   ob-\nservations   on   the   celestial   sphere.\nThe   model   operates   directly   on   the   Hierarchical   Equal   Area\nisoLatitude   Pixelization   and   employs   learnable   mask   tokens   to   handle   arbitrary   survey   geometries\nwithout   requiring   preprocessing.   Through   a   progressive   training   strategy,   HEALFormer   efficiently\nprocesses   high-resolution   maps   up   to   N side   =   1024   and   demonstrates   excellent   performance   across\ndiverse   survey   footprints   including   KiDS,   DES,   DECaLS,   and   Planck.   The   model   generalizes   ro-\nbustly to cosmological parameters beyond its training set, producing nearly unbiased reconstructions\nwith   superior   noise   suppression   compared   to   traditional   Kaiser-Squires   and   Wiener   filter   methods.\nRemarkably,   HEALFormer   exceeds   the   theoretical   phase   recovery   limits   of   linear   reconstruction\nmethods   at   small   scales,   achieving   a   fundamental   breakthrough   in   weak   lensing   analysis.   The   com-\nbination   of   computational   efficiency,   reconstruction   accuracy,   and   adaptability   to   varying   survey\nconfigurations   makes   HEALFormer   well-suited   for   current   and   next-generation   cosmological   sur-\nveys.   Code   is   available   at   GitHub."
+    },
+    {
+      "section": "Introduction",
+      "text": "Modern   cosmological   observations   produce   wide-field\nmaps of the cosmic microwave background,   galaxy angu-\nlar   distributions,   and   weak   gravitational   lensing   effects\nthat   span   substantial   fractions   of   the   celestial   sphere.\nTraditional   flat-sky   approximations,   which   treat   small\npatches   as   locally   Euclidean,   become   inadequate   as   sur-\nvey   areas   expand   to   such   large   angular   scales.   The   Hier-\narchical Equal Area isoLatitude Pixelization (HEALPix)\nscheme   [1]   has   emerged   as   the   standard   framework   for\nspherical   data   representation,   providing   equal-area   pix-\nelization and computational efficiency through fast spher-\nical   harmonic   transforms.   The   next   generation   of   wide-\nfield   missions   will   dramatically   extend   this   paradigm.\nThe   Rubin   Observatory   Legacy   Survey   of   Space   and\nTime 1   [2],   Euclid 2   [3],   and   the   China   Space   Station   Sur-\nvey   Telescope 3   [4,   5]   will   together   map   substantial   por-\ntions   of   the   sky   at   unprecedented   depth.\nExtracting\nmaximal   cosmological   information   from   these   expanded\nsurveys   demands   analysis   methods   that   operate   natively\nwithin   the   HEALPix   framework   while   maintaining   ro-\nbustness   against   complex   survey   masks   and   spatially\nvarying   noise.\nWeak   gravitational   lensing,   the   subtle   distortion   of\ngalaxy   shapes   caused   by   matter   along   the   line   of   sight,\nis   a   powerful   probe   of   the   cosmic   mass   distribution.   It\nconstrains fundamental cosmological parameters,   includ-\ning   the   matter   fraction   Ω m   and   the   clustering   amplitude\n∗ yuyu22@sjtu.edu.cn\n1   https://www.lsst.org/\n2   https://www.euclid-ec.org/\n3   https://www.bao.ac.cn/csst/\nσ 8   (see   review   by,   e.g.,   [6,   7]).   The   central   task   of   mass\nmapping   is   to   reconstruct   the   scalar   convergence   field   κ\nfrom   the   spin-2   shear   γ   inferred   from   observed   galaxy\nellipticities.   The   scalar   nature   of   κ   makes   convergence\nmaps more feasible to statistical analysis than the spin-2\nshear   field,   establishing   them   as   the   preferred   target   for\ncosmological   inference.\nMass   mapping   presents   a   challenging   inverse   problem\ndue   to   two   fundamental   obstacles:   shape   noise   and   in-\ncomplete   sky   coverage.   Shape   noise   arises   because   ob-\nserved   galaxy   ellipticities   combine   intrinsic   morpholo-\ngies   with   the   weak   lensing   shear   signal,   and   this   intrin-\nsic   scatter   typically   dominates   the   error   budget   in   weak\nlensing   analyses.\nSimultaneously,   survey   masks   intro-\nduce   spatial   discontinuities   that   corrupt   local   and   global\nmode   recovery.\nClassical   methods   address   these   chal-\nlenges   only   partially.   The   Kaiser-Squires   (KS)   estima-\ntor   [8]   provides   a   direct   linear   inversion   but   amplifies\nnoise   and   introduces   boundary   artifacts.   Wiener   filter-\ning (WF) [9] regularizes the solution by imposing a Gaus-\nsian prior on the convergence power spectrum, at the cost\nof   suppressing   non-Gaussian   features.   The   recently   de-\nveloped   AKRA   method   [10,   11]   relaxes   this   assumption\nthrough   a   prior-free   maximum   likelihood   formulation,\nthough   it   still   requires   clean   shear   fields   free   of   shape\nnoise.   Sparsity-based   methods   move   beyond   the   Gaus-\nsian   framework."
+    },
+    {
+      "section": "GLIMPSE   [12]   and   DarkMappy   [13]",
+      "text": "employ   tailored   priors   and   hierarchical   Bayesian   formu-\nlations   to   recover   non-Gaussian   structures   such   as   clus-\nters   and   filaments.   However,   these   approaches   typically\noperate   on   flat-sky   projections,   decomposing   the   sur-\nvey   into   overlapping   patches   that   are   reconstructed   in-\ndependently   and   stitched   together.   While   this   strategy\ncaptures   small-scale   features,   it   tends   to   suppress   low-\nℓ modes   and   remains   sensitive   to   border   effects.\nHy-"
+    },
+    {
+      "section": "arXiv:2603.25471v1  [astro-ph.IM]  26 Mar 2026",
+      "text": "2\nbrid   methods   such   as   MCALens   [14]   combine   linear   and\nsparse components directly on the sphere, improving over\nstandard   WF,   yet   still   rely   on   predefined   priors.   Conse-\nquently,   most   existing   approaches   either   adopt   flat-sky\napproximations,   impose   strong   statistical   assumptions,\nor   struggle   to   accommodate   complex   mask   geometries.\nDeep   learning   improves   the   reconstruction   on   flat\nmaps.\nDeepMass   [15]   leverages   a   U-Net   architecture\nand   achieves   tighter   cosmological   constraints   than   KS,"
+    },
+    {
+      "section": "WF,   and   DarkMappy   in   Fisher   forecasts   [16].   Genera-",
+      "text": "tive adversarial networks denoise KS reconstructions and\nrecover   two   statistics,   though   cross-correlation   metrics\ncan   degrade   [17].   Probabilistic   score-based   models   such\nas   DLPosterior   [18]   perform   competitively   with   WF   in\npixel   space   but   underperform   in   power-spectrum   ratios\non   κ TNG   dataset.   A   common   limitation   of   these   works\nis   their   flat-sky   formulation,   which   introduces   projection\nartifacts and complicates the treatment of survey bound-\naries.   Spherical   learning   seeks   to   avoid   these   issues   by\noperating   directly   on   HEALPix.\nGraph-based   models\nsuch   as   DeepSphere   [19]   demonstrate   this   direction   by\nclassifying   two   cosmological   parameters   from   κ   on   the\nsphere,   but   memory   costs   limit   resolution   and   masks   are\ntypically   handled   by   zero-filling,   which   degrades   perfor-\nmance near boundaries.   More recently, vision transform-\ners   (ViTs)   have   been   adapted   to   HEALPix   via   sphere\nsegmentation   [20].\nYet,   scaling   to   high   resolution   and\naccommodating   arbitrary   mask   geometries   remain   open\nchallenges,   underscoring   the   need   for   spherical-native,\nmask-aware   learning.\nWe introduce HEALFormer (HF), a mask-aware trans-\nformer for weak lensing mass mapping on the sphere.   The\nmodel   consumes   HEALPix   maps   directly   and   handles\npartial sky coverage and realistic noise natively.   Inspired\nby masked autoencoders (MAE) [21], it employs an asym-\nmetric   encoder-decoder   architecture   that   processes   only\nvisible   and   edge   patches.   This   design   reduces   memory\nand computational demands while preserving low- ℓ infor-\nmation crucial for large-scale structure.   We represent ar-\nbitrary mask geometries through learnable MASK tokens\n[22]   that   encode   both   masked   pixels   and   fully   masked\npatches,   enabling   principled   inpainting   and   mitigating\nborder   artifacts.   Our   training   strategy   combines   MAE\nretraining   with   Low-Rank   Adaptation   (LoRA)   [23]   for\nefficient   fine-tuning.   We   adopt   a   progressive   coarse-to-\nfine   schedule   by   first   training   at   N side   =   256   and   then\nscaling   to   N side   =   1024   on   standard   hardware.\nEval-\nuations   across   DES   [24],   KiDS   [25],   DECaLS   [26],   and\nPlanck   [27]   footprints   demonstrate   improved   reconstruc-\ntion   over   classical   methods   in   both   pixel   space   and   har-\nmonic   space,   indicating   a   scalable   path   for   forthcoming\nsurveys.\nThe   paper   is   organized   as   follows.   Section   II   reviews\nweak   lensing   theory   on   the   sphere   and   classical   recon-\nstruction   methods.   Section   III   presents   the   HEALFormer\narchitecture   and   implementation.   Section   IV   compares\nperformance   against   traditional   techniques   using   map-\nlevel and spectral metrics.   We conclude with a summary\nand   outlook   in   Sec.   V."
+    },
+    {
+      "section": "THE   SPHERE",
+      "text": "The theoretical foundation of weak lensing begins with\nthe   relationship   between   the   gravitational   potential   Φ\nand   the   matter   overdensity   field   δ   ≡ δρ/ ¯ ρ .   These   scalar\nfields   are   connected   through   the   Poisson   equation:\n∇ 2\nr Φ( t,  r ) =   3Ω m H 2\n0\n2 a ( t )   δ ( t,  r )   ,\n(1)\nwhere  ∇ 2\nr   is the spatial Laplacian, Ω m   is the matter den-\nsity   parameter,   H 0   is   the   Hubble   constant,   and   a ( t )   =\n1 / (1 +  z )   is   the   scale   factor   at   redshift   z .\nThe   lensing   potential   ϕ   represents   the   integrated   ef-\nfect   of   gravitational   fields   along   the   line   of   sight.   Using\nspherical   coordinates   ( χ, θ, φ )   where   χ   is   the   comoving\nradial   distance   and   ( θ, φ )   are   angular   coordinates   on   the\ncelestial sphere, the lensing potential is obtained through:\nϕ ( χ, θ, φ ) =   2\nc 2"
+    },
+    {
+      "section": "Z   χ",
+      "text": "0\ndχ ′   f K ( χ  − χ ′ )\nf K ( χ ) f K ( χ ′ ) Φ( χ ′ , θ, φ ) .\n(2)\nHere,   f K   denotes the angular diameter distance function\nthat   depends   on   the   spatial   curvature   K .\nFor   closed,\nflat, or open universes,  f K   takes the form of sin, identity,\nor   sinh,   respectively.   This   expression   employs   the   Born\napproximation,   treating   light   paths   as   unperturbed   by\ngravitational   deflections.   Given   a   population   of   source\ngalaxies,   we   obtain   the   two-dimensional   lensing   poten-\ntial   on   the   celestial   sphere   by   integrating   over   the   source\ngalaxy   distribution   n ( z )   as\nϕ ( θ, φ ) ="
+    },
+    {
+      "section": "Z",
+      "text": "dχ   n ( z ( χ ))   ϕ ( χ, θ, φ ) ,\n(3)\nyielding   a   scalar   field.\nThe mathematical framework for spherical lensing em-\nploys   spin-weighted   spherical   harmonics   s Y lm ( θ, φ )   with\nspin-weight   s   [28].   The   covariant   derivatives   ð   and   ¯ ð   act\nas   raising   and   lowering   operators   for   the   spin   weight:\nð s Y lm   =  −\np\n( l  − s )( l  +  s  + 1)   s +1 Y lm ,\n(4)\n¯ ð s Y lm   =\np\n( l  +  s )( l  − s  + 1)   s − 1 Y lm .\n(5)\nThe   lensing   potential   ϕ   determines   two   fundamental   ob-\nservables, namely, the convergence  κ  =  κ E  + iκ B   (spin-0)\nand   the   shear   γ   =  γ 1  +  iγ 2   (spin-2).   These   quantities   re-\nlate to the lensing potential through differential operators\nas   follows:\nκ  =  − 1\n2 ∇ 2 ϕ,\n(6)\n3\nγ   =  − 1\n4 ( ð 2  + ¯ ð 2 ) ϕ,\n(7)\nwhere  ∇ 2   = ( ð ¯ ð + ¯ ðð ) is the spherical Laplacian operator.\nThe   fundamental   relationship   between   shear   and   con-\nvergence   emerges   naturally   in   harmonic   space   through\ntheir   spherical   harmonic   coefficients.   For   the   shear   field:\nγ   ="
+    },
+    {
+      "section": "X",
+      "text": "ℓm\nˆ γ ℓm   2 Y ℓm ,\n(8)\nwhere   the   coefficients   are   obtained   through\nˆ γ ℓm   ="
+    },
+    {
+      "section": "Z",
+      "text": "d Ω γ ( θ, φ )  2 Y   ∗\nℓm ( θ, φ ) .\n(9)\nThe   harmonic   coefficients   can   be   decomposed   into   E -\nmode   and   B -mode   components   as   ˆ κ ℓm   =   ˆ κ E,ℓm  +  i ˆ κ B,ℓm\nand   ˆ γ ℓm   =   ˆ γ E,ℓm  +  i ˆ γ B,ℓm .   In   the   harmonic   domain,   the\nrelationships   between   the   lensing   potential,   convergence,\nand   shear   take   the   following   elegant   form:\nˆ κ ℓm   =  − 1\n2 ℓ ( ℓ + 1)ˆ ϕ ℓm\n(10)\nand\nˆ γ lm   =   1\n2\np\n( ℓ − 1) ℓ ( ℓ + 1)( ℓ + 2) ˆ ϕ ℓm ,\n(11)\nwhere   ˆ ϕ ℓm   is   the   spherical   harmonic   transform   of   the\nlensing   potential   in   Eq.   (3).   Combining   these   equations,\nwe   derive   the   relation:\nˆ γ lm   =  −\ns\n( ℓ − 1)( ℓ + 2)\nℓ ( ℓ + 1)\nˆ κ ℓm .\n(12)\nThis   fundamental   equation   provides   the   theoretical   ba-\nsis   for   all   mass   mapping   techniques   by   directly   linking\nobservable   shear   to   the   desired   convergence   field.\nThe   practical   implementation   of   mass   mapping   re-\nquires   expressing   the   shear-convergence   relationship   in\ndiscrete   form.\nUsing   matrix   notation,   the   observation\nequation   becomes"
+    },
+    {
+      "section": "γ   =  A κ  +  n   ,",
+      "text": "(13)\nwhere   γ   represents   the   observed   shear   field   discretized\ninto pixels,  A  encodes the lensing transformation [7], and"
+    },
+    {
+      "section": "Kaiser   and   Squires",
+      "text": "With   the   harmonic   relationship   specified,   we   briefly\nreview   classical   estimators,   beginning   with   the   direct   in-\nversion   of   KS   [8].   It   represents   the   most   direct   approach\nto   mass   reconstruction,   exploiting   the   linear   relationship\nbetween   shear   and   convergence   in   harmonic   space.   This\ntechnique   provides   an   exact   solution   under   ideal   condi-\ntions   but   neglects   observational   complications   including\nnoise   and   incomplete   sky   coverage.\nThe   KS   reconstruction   directly   inverts   Eq.   (12)   to   re-\ncover   convergence   from   observed   shear:\nˆ κ ℓm   =   ˆ κ E,ℓm  +  i ˆ κ B,ℓm   =  −\ns\nℓ ( ℓ + 1)\n( ℓ − 1)( ℓ + 2)  ˆ γ ℓm .\n(14)"
+    },
+    {
+      "section": "A   fundamental   limitation   of   this   approach   is   the   mass-",
+      "text": "sheet   degeneracy   [29],   which   manifests   as   an   undefined\nℓ =   0   mode.\nThis   degeneracy   prevents   determina-\ntion   of   the   mean   convergence   from   shear   measurements\nalone.\nFollowing   standard   practice   for   large-scale   sur-\nveys   [30],   we   assume   zero   mean   convergence   by   setting\nthe   monopole   to   zero.\nAs   one   of   the   methods   in   comparison,   our   KS   imple-\nmentation   utilizes   healpy   spherical   harmonic   transforms\nwith   the   maximum   multipole   restricted   to   ℓ max   = 2 N side\nto ensure numerical stability [24], providing sufficient res-\nolution   while   maintaining   computational   tractability."
+    },
+    {
+      "section": "Wiener   filter",
+      "text": "The   Wiener   filter   provides   an   optimal   linear   recon-\nstruction under Gaussian assumptions by balancing data\nfidelity with prior knowledge of signal and noise statistics.\nThis   Bayesian   approach   seeks   the   convergence   field   κ\nthat   maximizes   the   posterior   probability   given   observed\nshear   γ .\nThe   method   requires   specification   of   the   signal   covari-\nance   S κ   =   ⟨ κκ † ⟩ and   noise   covariance   N   =   ⟨ nn † ⟩ [31–\n33].   For   isotropic   convergence   fields,   S κ   becomes   diago-\nnal   in   harmonic   space   with   elements   given   by   the   power\nspectrum   C κ ( ℓ ).   Similarly,   uncorrelated   Gaussian   shape\nnoise   yields   a   diagonal   noise   covariance   in   pixel   space.\nUnder Gaussian assumptions for both signal and noise,\nthe posterior probability maximization yields the Wiener\nfilter   solution   through   minimization   of   the   χ 2   statistic:\nχ 2   = ( γ  − A κ ) † N − 1 ( γ  − A κ ) +  κ † S − 1\nκ   κ .\n(15)\nThis optimization balances data fidelity (first term) with\nprior   expectations   (second   term),   yielding   the   optimal\nestimate:"
+    },
+    {
+      "section": "κ WF   = ( S − 1",
+      "text": "κ\n+  A † N − 1 A )\n− 1 A † N − 1 γ .\n(16)\n4\nThis solution represents the optimal linear estimator un-\nder   Gaussian   assumptions,   providing   the   minimum   vari-\nance   unbiased   reconstruction   of   the   convergence   field.\nDirect   implementation   faces   computational   challenges\nfor   high-resolution   maps   due   to   large   matrix   inversions.\nWe   employ   the   DANTE   algorithm   [34],   which   exploits\nthe diagonal structure of covariance matrices in their nat-\nural   bases   (pixel   space   for   noise,   harmonic   space   for   sig-\nnal)   to   enable   iterative   solutions   without   explicit   matrix\ninversions.   This   approach   has   proven   practical   for   large-\nscale   surveys,   as   demonstrated   in   DES-Y3   analysis   [24]."
+    },
+    {
+      "section": "DEEP   LEARNING   MASS   MAPPING",
+      "text": "Deep   learning   has   revolutionized   numerous   scientific\ndomains, with transformer architectures achieving excep-\ntional   performance   in   natural   language   processing   and\ncomputer vision.   This section describes our adaptation of\ntransformer   models   to   the   spherical   mass   mapping   prob-\nlem."
+    },
+    {
+      "section": "Vision   transformers",
+      "text": "Transformers   have   become   a   standard   tool   across   ma-\nchine   learning   because   they   model   long-range   interac-\ntions   efficiently.\nTheir   core   operation   is   self-attention\n[35],   which   forms   data-dependent   weighted   averages   of\ninputs:\nAttention( Q, K, V  ) = softmax\n\u0012 QK T\n√\nd\n\u0013"
+    },
+    {
+      "section": "V,",
+      "text": "(17)\nwhere  Q ,  K , and  V   are the query, key, and value matrices\nobtained   from   learnable   projections   of   the   input,   and   d\nis   the   key   dimension.   Unlike   CNNs   that   emphasize   local\nneighborhoods,   attention   connects   all   positions   at   once,\ncapturing   global   structure   and   accommodating   variable\ninput   sizes.   ViTs   adapt   this   idea   to   images   by   splitting\nan image into fixed-size patches and treating the resulting\nsequence   of   patch   embeddings   as   tokens   [36].   Patch   size\ncontrols   a   simple   trade-off:   smaller   patches   offer   finer\ndetail   but   increase   the   token   count,   and   the   cost   of   self-\nattention   scales   quadratically   with   the   number   of   tokens\n[ O ( N   2 )   for   N   patches].   Following   common   practice,   we\nuse   16  ×  16   patches   to   balance   resolution   and   efficiency.\nIn our spherical setting, we apply the same patchification\nto   HEALPix   maps,   arranging   patches   using   the   NEST\nordering   so   that   nearby   pixels   map   to   nearby   tokens   in\nthe   sequence.\nMAEs further strengthen this   framework   through self-\nsupervised pretraining [21].   An asymmetric encoder pro-\ncesses only the visible patches while a lightweight decoder\nreconstructs   the   masked   ones.\nThis   forces   the   model\nto   learn   robust   representations   of   structure   and   context\nwithout   labeled   targets,   and   these   representations   trans-\nfer   effectively   to   downstream   tasks.\nAlthough   natural\nimages   and   cosmological   fields   differ,   the   priors   learned\nby   MAE—patterns,   continuity,   and   multiscale   context—\nare   useful   for   weak   lensing   mass   mapping.   In   practice,"
+    },
+    {
+      "section": "MAE   pretraining   accelerates   convergence,   improves   de-",
+      "text": "noising and inpainting in masked regions, and reduces the\namount   of   task-specific   training   required.   With   these   in-\ngredients,   we   now   specify   a   spherical-native   architecture\ntailored   to   HEALPix   data."
+    },
+    {
+      "section": "HEALFormer   architecture",
+      "text": "HEALFormer   (Fig.   1)   is   a   transformer   tailored   for\nspherical   mass   mapping.   The   model   takes   as   input   the\nshear   components   γ 1 ,   γ 2 ,   and   a   binary   survey   mask.   Be-\ncause   weak   lensing   inversion   is   nonlocal,   reconstructing\nconvergence near survey boundaries requires information\nfrom   an   extended   region.   We   therefore   define   an   edge\nzone   around   the   survey   footprint   (see   Sec.   III D   for   de-\ntails)   and   partition   the   sky   into   three   mutually   exclusive\npatch   categories.   A   patch   is   visible   if   all   its   pixels   are\nobserved   and   none   lie   in   the   edge   zone,   inner   edge   if   it\ncontains a mixture of observed and edge pixels, and  outer\nedge   if   it   lies   entirely   within   the   edge   zone.   This   classifi-\ncation concentrates learning on boundary neighborhoods\nwhile   preserving   clean   supervision   in   the   survey   interior.\nThe   forward   pass   proceeds   as   follows.   Input   maps   are\npartitioned   into   16  ×  16   patches   under   HEALPix   NEST\nordering,   which   naturally   groups   spatially   adjacent   pix-\nels.   Each   patch   is   projected   into   a   d model -dimensional\nembedding;   for   inner-edge   patches,   learnable   MASK   to-\nkens   replace   masked   pixel   positions   within   this   embed-\nding.   Positional   embeddings   encoding   HEALPix   geom-\netry   are   then   added.\nThe   encoder,   a   stack   of   trans-\nformer blocks with self-attention and feed-forward layers,\nprocesses   only   visible   and   inner-edge   embeddings.   This\nasymmetric   design   improves   computational   efficiency   by\nexcluding   outer-edge   patches   from   the   expensive   encod-\ning   stage.   After   encoding,   MASK   tokens   for   outer-edge\npatches   are   inserted   into   the   latent   sequence   and   po-\nsitional   embeddings   are   reapplied.\nThe   decoder   pre-\ndicts   convergence   values   from   this   augmented   represen-\ntation.   The   backbone   follows   the   MAE   paradigm   and\nremains   frozen   during   training;   only   LoRA   parameters\nare   updated   (Sec.   III E),   reducing   trainable   parameters\nto   roughly   10%.\nThis   architecture   addresses   three   practical   challenges.\nFirst,   denoising :   shape   noise   dominates   at   high   resolu-\ntion,   so   features   must   be   extracted   without   suppressing\ncosmological   signal.\nSecond,   inpainting :   the   nonlocal\nshear-to-convergence relation permits recovery in masked\nregions   from   surrounding   context.   Third,   border   effects :\ncomplex   survey   geometries   demand   explicit   mask-aware\nhandling.   The asymmetric encoder decoder tackles these\njointly:   the encoder denoises and compresses information\nfrom observed patches; the decoder, guided by MASK to-\nkens, predicts a seamless  κ  field that extends into masked\nborders.   Self-attention propagates information across the\n5"
+    },
+    {
+      "section": "Mask",
+      "text": "trainable\nfrozen\nLoRA\nlatent vector\n[MASK] token\ninput\ntarget"
+    },
+    {
+      "section": "FIG.   1.",
+      "text": "HEALFormer   architecture.   The   model   reconstructs   convergence   maps   ( κ )   from   masked,   noisy   HEALPix   shear   inputs\n( γ 1 , γ 2 )   and   an   explicit   mask.   Pixels   are   classified   as   visible   (blue),   inner   edge   (orange),   or   outer   edge   (grey).   The   visible\nand   inner-edge   patches   will   be   projected   into   patch   embddding   (inserting   the   MASK   token   for   the   orange   inner-edge   pixels).\nThe   asymmetric   encoder-decoder   processes   these   embeddings   through   the   encoder,   then   inserts   learnable   MASK   tokens   for\nouter-edge   patches   before   decoding.   This   design   enables   joint   denoising   and   inpainting,   yielding   a   complete   κ   field   over   both\nobserved   and   masked   regions.   Efficient   fine-tuning   via   LoRA   updates   only   ∼ 10%   of   parameters   while   the   backbone   remains\nfrozen.\nmask   topology,   improving   boundary   fidelity.\nThree   design   choices   underpin   this   approach.   Learn-\nable mask representation:   rather than zero-filling, MASK\ntokens explicitly encode missing data, allowing the model\nto   learn   mask   geometry.\nAsymmetric   processing:\nre-\nstricting   the   encoder   to   visible   and   inner-edge   patches\nreduces   computation   on   partial-sky   data   while   the   de-\ncoder   reconstructs   borders   from   encoded   context.   Uni-\nversal   mask   handling:   a   single   model   accommodates   di-\nverse survey footprints via variable-length sequences and\nspecialized   position   embeddings   (Appendix   A 1)   that   re-\nspect   spherical   geometry."
+    },
+    {
+      "section": "Mask   token   strategy",
+      "text": "Astronomical   observations   inevitably   contain   masked\nregions   from   survey   boundaries,   bright-star   exclusions,\nlow   signal-to-noise   areas,   and   Galactic   contamination.\nTraditional   methods   address   these   through   preprocess-\ning:   KS+   [37]   applies   discrete   cosine   transform   inpaint-\ning,   while   DeepMass   [15]   uses   zero-filling.   HEALFormer\ninstead   employs   learnable   MASK   tokens,   inspired   by\ntheir   success   in   language   models   [22].   These   trainable\nvectors   encode   the   statistical   properties   and   spatial   con-\ntext   of   masked   regions.\nBecause   maps   are   divided   into   patches,   MASK   to-\nkens   operate   at   two   levels.   At   the   pixel   level ,   inner-edge\npatches contain both observed and masked pixels; MASK\ntokens replace masked positions within the patch embed-\nding before encoding, enabling the encoder to distinguish\nobservations   from   gaps.   At   the   patch   level ,   MASK   to-\nkens   for   outer-edge   patches   are   appended   to   the   latent\nsequence   after   encoding   but   before   decoding,   enabling\nthe   decoder   to   predict   κ   values   beyond   survey   bound-\naries   from   visible-region   context."
+    },
+    {
+      "section": "A   single   learnable   MASK   embedding   is   shared   across",
+      "text": "all   positions   and   maps;   spatial   information   is   injected\nthrough   additive   positional   embeddings.\nThis   explicit\nrepresentation   allows   HEALFormer   to   capture   the   ge-\nometry   of   survey   masks   and   mitigate   boundary   artifacts\nwhere   traditional   methods   struggle."
+    },
+    {
+      "section": "Data   generation   and   preprocessing",
+      "text": "We follow the DES-Y3 setup [24] to simulate weak lens-\ning data.   Cosmological parameters are sampled from the\n6\nKiDS-450   posterior   [38].   Using   PYCCL   [39],   we   compute\nthe theoretical lensing power spectra, then use  HEALPY  to\ndraw   Gaussian   full-sky   realizations   of   shear   ( γ )   and   con-\nvergence   ( κ )   on   the   HEALPix   grid.   Maps   are   generated\nat   two   resolutions,   N side   =   256   and   N side   =   1024.   For\nefficiency,   we   create   10,000   realizations   at   N side   =   256\nand   3,000   at   N side   =   1024,   and   split   each   set   90% / 10%\ninto   training   and   testing.\nTo   evaluate   performance   under   realistic   sky   coverage,\nwe   apply   survey   masks   from   KiDS,   DES,   DECaLS,   and\nPlanck.   For   masks   defined   at   higher   resolution   (for   ex-\nample   Planck   at   N side   =   2048),   we   change   resolution   in\nharmonic   space   by   discarding   modes   above   ℓ max .   This\navoids   aliasing   when   degrading   to   N side   =   256   or   1024.\nWe   also   build   an   explicit   boundary   zone   around   each\nfootprint   by   iteratively   expanding   the   mask.\nStarting\nfrom   the   original   mask,   we   call   healpy.get   all   neighbours\n16   times   (consistent   with   the   patch   size)   to   match   the\npatch   size   and   mark   the   resulting   16   pixel   thick   ring   as\nthe   edge   pixels.   This   boundary   is   important   because   the\nshear to convergence relation is nonlocal, and information\nnear   the   survey   edge   helps   reconstruct   the   convergence\non   both   sides   of   the   mask.\nFor consistent comparison across experiments, we sim-\nulate   isotropic   Gaussian   shape   noise   with   a   galaxy   num-\nber   density   of   n gal   =   30   galaxies/arcmin 2   (representa-\ntive   of   Euclid   [3]   and   LSST-Y10   [40]).   In   order   to   make\nsure the noise   is independent   for   each   sky   realization,   we\ngenerate   the   noise   on-the-fly   during   training   and   testing\nrather than stored in the dataset, for each sky realization,\nwe   use   a   new   random   seed   to   generate   the   noise.\nThe   standard   deviation   of   the   noise   n   in   Eq.   (13)   is\ngiven   by:\nσ n   =\nσ ϵ\np"
+    },
+    {
+      "section": "N g",
+      "text": ",\n(18)\nwhere   σ ϵ   represents   the   intrinsic   shape   dispersion   com-\nbined with measurement uncertainty, and  N g   is the num-\nber   of   galaxies   per   pixel.\nFollowing   common   practice\n[15, 37, 41, 42], we adopt  σ ϵ   = 0 . 4.   For individual elliptic-\nity   components,   this   translates   to   σ ϵ 1   =   σ ϵ 2   =   σ ϵ /\n√\n2   ≈\n0 . 28,   with   σ ϵ   =\np\nσ 2 ϵ 1   +  σ 2 ϵ 2 .   We   calculate   N g   for   each\npixel using the nside2pixarea function from  HEALPY  to de-\ntermine   pixel   area,   then   multiplying   by   the   galaxy   num-\nber   density."
+    },
+    {
+      "section": "Training",
+      "text": "1.\nFine-tuning\nWe   initialize   HEALFormer   from   a   pretrained   MAE\n(ViT-Base/16)   to   transfer   generic   image   priors   to   the\nweak   lensing   setting.\nThis   initialization   stabilizes   op-\ntimization   and   substantially   reduces   both   training   time\nand   compute   relative   to   training   from   scratch.\nTo\nadapt   the   backbone   efficiently,   we   employ   LoRA   [23],   a\nparameter-efficient   fine-tuning   technique.\nRather   than\nretraining   all   network   weights,   LoRA   freezes   the   pre-\ntrained parameters and introduces a small set of trainable\nmodifications   that   capture   task-specific   adjustments.\nThis   strategy   achieves   performance   comparable   to   full\nretraining   at   a   fraction   of   the   memory   and   computation\ncost   [43],   while   also   allowing   multiple   survey   configura-\ntions   to   be   stored   compactly   as   lightweight   parameter\nsets   rather   than   duplicating   the   entire   model.\nIn   our   configuration,   we   train   the   query,   key,   and\nvalue   projections   of   each   attention   block,   the   normaliza-\ntion   layers,   the   learnable   MASK   token,   and   the   position\nembeddings;   all   remaining   parameters   are   frozen.   The\nfull   model   contains   ∼ 10 8   parameters,   of   which   ∼ 10 7\n( ≈ 10%) are trainable under LoRA. This setup preserves\ncapacity   where   it   matters   for   adaptation   while   keeping\nthe training and storage footprint modest, enabling us to\nfine-tune   at   the   resolutions   used   in   this   work.\n2.\nOptimizer   and   learning   rate   strategy\nThe   learning   rate   is   a   critical   hyperparameter   in   deep\nlearning   that   controls   the   step   size   during   gradient   de-\nscent   optimization.\nConventional   approaches   typically\nemploy   a   cosine   decay   learning   rate   scheduler,   which\ngradually   reduces   the   learning   rate   throughout   training\nto   ensure   smaller   optimization   steps   as   the   model   ap-\nproaches   convergence.\nFor   our   model,   we   adopt   the   Schedule-Free   AdamW\noptimizer   recently   proposed   by   Defazio   et   al.   [44].   This\nadvanced optimizer eliminates the need for manual learn-\ning   rate   scheduling   while   maintaining   the   benefits   of   the\noriginal   AdamW   algorithm   [45]."
+    },
+    {
+      "section": "A   key   advantage   of",
+      "text": "Schedule-Free   AdamW   is   its   robustness   to   a   wider   range\nof   initial   learning   rates,   reducing   the   need   for   extensive\nhyperparameter   tuning.\nIn   our   implementation,   we   initialize   the   base   learn-\ning   rate   at   1   ×   10 − 4 .\nThis   approach   significantly   im-\nproves   both   convergence   speed   and   final   model   perfor-\nmance compared to traditional schedulers, allowing us to\nachieve optimal results with less computational overhead\nand   manual   intervention.\n3.\nCoarse-to-fine   training   strategy\nTraining   transformer-based   models   on   high-resolution\ndata   (e.g.,   N side   =   1024)   presents   significant   computa-\ntional challenges due to the quadratic complexity  O ( N   2 )\nof   attention   mechanisms.   When   comparing   N side   = 1024\nto   N side   =   256,   the   number   of   pixels   increases   by   a   fac-\ntor   of   16,   resulting   in   a   sequence   length   that   is   16   times\nlonger.\nConsequently,   the   computational   requirements\nincrease   by   a   factor   of   16 2   =   256   due   to   the   trans-\nformer’s   quadratic   complexity.\nThis   dramatic   increase\nleads   to   substantially   longer   training   times   and   signifi-\ncantly   higher   GPU   memory   consumption.\n7\nTo effectively manage computational constraints while\nensuring   robust   model   performance,   we   adopt   a   pro-\ngressive,   two-stage   coarse-to-fine   training   strategy.   This\nmethod   aligns   with   standard   machine   learning   practices\nby   gradually   increasing   the   complexity   of   the   task.\nIn the initial stage, the model is trained at a lower res-\nolution ( N side   = 256).   This phase is computationally less\ndemanding   and   presents   a   simplified   mass-mapping   sce-\nnario with smaller shape noise per pixel.   Here, the model\nlearns   the   essential   relationship   between   shear   ( γ )   and\nconvergence ( κ ), acquiring fundamental skills for manag-\ning   mask   effects   and   performing   basic   denoising.\nThe   second   phase   trains   at   higher   resolution   ( N side   =\n1024), where per-pixel noise increases substantially.   This\nstage   refines   the   model’s   denoising   capability,   empha-\nsizing   the   extraction   of   meaningful   signal   from   noise-\ndominated   data.   The   progressive   increase   in   task   com-\nplexity   allows   the   model   to   develop   the   advanced   rep-\nresentations   required   for   accurate   high-resolution   recon-\nstruction.\nThroughout   both   stages   we   retain   the   16  ×  16   patch\nsize.   Although smaller   patches   can   improve   performance\n[46], reducing patch size to 8 × 8 quadruples the sequence\nlength,   exceeding   single-GPU   memory   at   N side   =   1024.\nMaintaining   a   fixed   patch   size   also   simplifies   coarse-\nto-fine   transfer:\nthe   pretrained   low-resolution   weights\nload   directly   into   the   high-resolution   model,   enabling\nparameter-efficient   fine-tuning   with   LoRA   rather   than\nfull   retraining.\n4.\nLoss   function\nWe   train   the   model   with   a   hierarchical   pixel-space\nloss   that   aggregates   mean   squared   error   (MSE)   terms\nevaluated   at   multiple   spatial   resolutions.\nThis   multi-\nscale   design   guides   the   network   to   capture   large-scale\nstructure   while   preserving   small-scale   detail,   which   im-\nproves   convergence-map   reconstruction.\nWe   explored\nadding   harmonic-space   losses,   but   found   no   measurable\ngain   over   pixel-space   losses   while   incurring   substantially\nhigher   computational   cost.\nBalancing   multiple   loss   terms   is   nontrivial.\nWe   fol-\nlow   the   uncertainty-based   weighting   of   Cipolla   et   al.\n[47],   which   treats   each   term   as   having   a   task-dependent,\nhomoscedastic   uncertainty.   The   associated   weights   are\nlearned   jointly   with   the   model,   removing   manual   tun-\ning   and   allowing   losses   with   different   units   and   dynamic\nranges   to   be   optimized   together.\nFormally,   the   total   loss   comprises   multiscale   terms\nevaluated   over   visible   pixels   plus   two   additional   terms\nthat   target   boundary   regions:"
+    },
+    {
+      "section": "X",
+      "text": "i =1\n\u0012   1\nω 2\ni"
+    },
+    {
+      "section": "L i  + log  ω i",
+      "text": "\u0013\n+"
+    },
+    {
+      "section": "X",
+      "text": "k ∈{ inner ,  outer }\n\u0012   1\nω 2\nk"
+    },
+    {
+      "section": "L k  + log  ω k",
+      "text": "\u0013\n,\n(19)"
+    },
+    {
+      "section": "X",
+      "text": "j =1\n\u0002\ng i ( κ pred ) j   − g i ( κ true ) j\n\u0003 2   ,\n(20)\nwhere  P i   is the number of visible pixels at the  i th resolu-\ntion.   The operator  g i ( · ) downsamples a map to resolution"
+    },
+    {
+      "section": "N side / 2 i − 1   via average pooling, so that the native resolu-",
+      "text": "tion   corresponds   to   i  =   1.   Each   learnable   weight   ω i   >  0\n(initialized   to   unity)   encodes   the   uncertainty   of   its   asso-\nciated   term;   the   log  ω i   regularizer   prevents   the   solution\nfrom   trivially   driving   any   weight   to   zero.   The   boundary\nterms   L inner   and   L outer   are   computed   at   the   native   reso-\nlution   but restricted   to   inner-edge   and outer-edge   pixels,\nrespectively,   which   lie   immediately   adjacent   to   the   mask\nand   are more   difficult   to reconstruct   than   interior visible\npixels.\nWe   choose   N scale   = log 2  N side  + 1   scales   corresponding\nto  N side   ∈{ 1 ,  2 ,  4 , . . . , N side } .   For  N side   = 256 this yields\n9   scale   terms;   together   with   the   two   boundary   terms   the\nloss   sums   11   uncertainty-weighted   components.\nWhen\ncomputing   MSE   at   any   scale,   we   restrict   the   evaluation\nto   visible   and   edge   pixels   and   exclude   masked   areas   that\nlie   far   from   the   survey   boundary."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "We assess reconstruction fidelity in pixel space and har-\nmonic   space.   Pixel-space   metrics   test   pointwise   agree-\nment   and   distributional   similarity,   while   harmonic-space\nmetrics   probe   scale-dependent   consistency.\n1.\nPixel-space   metrics\nWe quantify multiplicative bias by fitting a constrained\nlinear   model   between   the   reconstructed   and   true   conver-\ngence   maps,\nκ rec   =  m κ true ,\n(21)\nafter   subtracting   the   mean   of   each   map   and   restricting\nto   unmasked   pixels.   Fixing   the   intercept   to   zero   reflects\nthe   vanishing   mean   of   the   convergence   field   and   isolates\na   single   scale   parameter   m .\nTo   obtain   a   slope   estimate   that   is   symmetric   under\nexchanging   the   roles   of   the   two   maps,   we   minimize   the\naverage   squared   orthogonal   distance   to   the   line   in   the\n( κ true , κ rec )   plane,"
+    },
+    {
+      "section": "X",
+      "text": "i =1\n\u0012 m κ true\ni\n− κ rec\ni\n√\nm 2   + 1\n\u0013 2\n.\n(22)\n8\nThis total least-squares formulation ensures permutation\nsymmetry:   fitting   κ rec   =   m 1  κ true   and   κ true   =   m 2  κ rec\nyields  m 1 m 2   = 1, so the result does not depend on which\nmap   is   taken   as   the   predictor.\nOverall   amplitude-agnostic   accuracy   is   reported   using\nthe   normalized   root   mean   squared   error   (NRMSE)   [48],"
+    },
+    {
+      "section": "NRMSE( κ rec , κ true ) =   RMSE( κ rec , κ true )",
+      "text": "σ κ true\n,\n(23)\nwith   RMSE( x, y )   =\nq"
+    },
+    {
+      "section": "N   − 1  P N",
+      "text": "i =1   ( x i  − y i ) 2   and   σ κ true\nthe   standard   deviation   of   the   true   map.   This   normaliza-\ntion   yields   a   dimensionless   quantity   comparable   across\ndata   sets   with   different   signal   levels.\nLinear   association   is   summarized   by   the   Pearson   cor-\nrelation   coefficient,\nρ ( X, Y  ) =   Cov( X, Y  )\nσ X σ Y\n=\n1"
+    },
+    {
+      "section": "P N",
+      "text": "i =1 ( X i  − ¯ X )( Y i  − ¯ Y  )\nσ X σ Y\n,\n(24)\nwhich   lies   in   [ − 1 ,  1]   and   is   invariant   to   swapping   X   and"
+    },
+    {
+      "section": "Y  .   Here   X   and   Y   denote   the   pixel   values   of   the   recon-",
+      "text": "structed   and   true   maps   on   the   unmasked   domain.\nTo\ncompare\none-point\ndistributions,\nwe\nuse\nthe\nJensen–Shannon   (JS)   divergence,   as   in   the   DES-Y1\nmass-mapping   analysis   [49],"
+    },
+    {
+      "section": "D JS ( A, B ) =   1",
+      "text": "2 [ D KL ( A ∥ M ) +  D KL ( B ∥ M )]  ,\n(25)\nwhere   M   = ( A  +  B ) / 2,   and   with   Kullback-Leibler   diver-\ngence"
+    },
+    {
+      "section": "X",
+      "text": "x"
+    },
+    {
+      "section": "B ( x ) .",
+      "text": "(26)\nUsing   base-2   logarithms,   D JS   ∈ [0 ,  1],   where   0   indicates\nidentical   histograms   and   1   indicates   disjoint   support.\nThis   complements   pointwise   metrics   by   testing   distribu-\ntional   agreement.\n2.\nHarmonic-space   metrics\nWe   test   scale-dependent   consistency   through   the   E -\nmode   power   spectra   of   the   reconstructed   convergence,"
+    },
+    {
+      "section": "C EE",
+      "text": "ℓ\n=\n1\n2 ℓ + 1"
+    },
+    {
+      "section": "X",
+      "text": "m\n| ˆ κ E,ℓm | 2   .\n(27)\nSpectra   are   computed   with   HEALPY ’s   ANAFAST   using   the\nsame   sky   mask   for   all   methods   to   ensure   a   fair   compari-\nson.   While   pseudo- C ℓ estimators   such   as   NaMaster   [50]\ncan   correct   for   mask   coupling,   our   consistent   pipeline\nsuffices   for   relative   benchmarking.   In   the   absence   of   sys-\ntematics   on   the   full   sky,   C BB\nℓ\n=   0   for   lensing   conver-\ngence;   any   detected   B-modes   thus   trace   noise,   masking,\nor   residual   systematics.\nScale-by-scale   phase   agreement   with   the   truth   is   mea-\nsured   by   the   cross-correlation   coefficient\nr ℓ ="
+    },
+    {
+      "section": "C rec ,  true",
+      "text": "ℓ\np"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n,\n(28)\nwhich   lies   in   [ − 1 ,  1].\nValues   near   unity   indicate   high\nphase   coherence   and   accurate   recovery   at   multipole   ℓ ."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "We   evaluate   HEALFormer   performance   through   com-\nprehensive   testing   across   various   observational   condi-\ntions,   comparing   against   traditional   KS   and   WF   meth-\nods.   Unless   specified   otherwise,   all   evaluations   use   cos-\nmological   parameters   randomly   drawn   from   the   KiDS-\n450   posterior   distribution   [38]."
+    },
+    {
+      "section": "Mask   effects",
+      "text": "To   isolate   the   impact   of   incomplete   sky   coverage   from\nobservational   noise,   we   first   evaluate   reconstruction   per-\nformance   on   noise-free   shear   fields.   We   train   and   test"
+    },
+    {
+      "section": "HF   at   N side   =   256   using   clean   shear   inputs   with   realis-",
+      "text": "tic   survey   masks   applied.   Typical   masks   comprise   large\ncontiguous   footprints   punctuated   by   small   holes   due   to\nbright   stars   or   low   signal-to-noise   regions.\nUnder   these   idealized   conditions,   WF   achieves   near-\nperfect   reconstruction   in   both   pixel   and   harmonic   space,\nconsistent   with   the   analytic   results   of   AKRA   [10,   11]."
+    },
+    {
+      "section": "KS   degrades   relative   to   full-sky   performance,   exhibiting",
+      "text": "increased scatter due to boundary artifacts.   HF matches"
+    },
+    {
+      "section": "WF   accuracy   across   all   metrics   (see   Appendix   A 2   for",
+      "text": "quantitative details).   These results confirm that, for typ-\nical   survey   geometries   with   largely   contiguous   coverage,\nthe   observed   shear   field   retains   sufficient   information   to\nrecover   the   convergence   exactly.   Consequently,   the   ab-\nsence   of   noise   removes   the   primary   challenge,   and   more\nsophisticated   methods   offer   no   additional   benefit   in   this\nlimit."
+    },
+    {
+      "section": "Noise   effect",
+      "text": "Noise imposes a fundamental limit distinct from mask-\ning.\nMissing   data   may   be   partially   inferred   from   sur-\nrounding   regions,   whereas   additive   noise   irreversibly\ndegrades   information,   most   severely   on   small   angular\nscales.   We first establish the linear theoretical limit, then\nassess   how   the   learned   model   exceeds   it   in   practice.\nConsider   isotropic,   uncorrelated   pixel   noise   in   the   ob-\nserved   shear   E -mode   coefficients,\nˆ γ E\nℓm   =  γ E\nℓm   +  n γ\nℓm ,\n⟨| n γ\nℓm | 2 ⟩≡ N  γ\nℓ .\n(29)\n9\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 015\n− 0 . 010\n− 0 . 005\n0 . 000\n0 . 005\n0 . 010\n0 . 015\nκ KS\nideal\nm  = 1 . 17"
+    },
+    {
+      "section": "D JS   = 0 . 0061",
+      "text": "ρ  = 0 . 84\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 015\n− 0 . 010\n− 0 . 005\n0 . 000\n0 . 005\n0 . 010\n0 . 015\nκ WF\nideal\nm  = 0 . 84"
+    },
+    {
+      "section": "D JS   = 0 . 0079",
+      "text": "ρ  = 0 . 86\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 015\n− 0 . 010\n− 0 . 005\n0 . 000\n0 . 005\n0 . 010\n0 . 015\nκ HF\nideal\nm  = 0 . 98"
+    },
+    {
+      "section": "D JS   = 0 . 0004",
+      "text": "ρ  = 0 . 98\n10 1\n10 2\nℓ\n0 . 0\n0 . 5\n1 . 0\n1 . 5"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ /C true\nℓ"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2\nℓ\n0 . 8\n0 . 9\n1 . 0\nr ℓ\nmax"
+    },
+    {
+      "section": "KS",
+      "text": "| ∆ κ KS |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n0\n1"
+    },
+    {
+      "section": "Method",
+      "text": "residuals   ∆ κ/σ κ true ;   lighter   colors   indicate   smaller   errors.\nMiddle:   pixelwise   κ rec   versus   κ true   with   the   diagonal   denoting\nperfect   recovery.   WF   reduces   scatter   relative   to   KS   but   is   biased;   HF   attains   tighter   scatter   with   near-unity   slope.   Bottom:\nharmonic-space   metrics,   the   power-spectrum   ratio   C rec\nℓ"
+    },
+    {
+      "section": "/C true",
+      "text": "ℓ\n,   and   the   cross-correlation   r ℓ .   The   black   curve   shows   the   linear\nceiling   r max\nℓ\nfrom   Eq.   (36).\nOn   the   full   sky,   the   shear   and   convergence   are   related   in\nharmonic   space   by\nγ E\nℓm   =  D ℓ κ ℓm ,"
+    },
+    {
+      "section": "D ℓ ≡−",
+      "text": "s\n( ℓ − 1)( ℓ + 2)\nℓ ( ℓ + 1)\n,\n(30)\nwhere   the   overall   sign   convention   is   irrelevant   for   power\nspectra   and   correlation   coefficients.\nIt   is   convenient   to   work   in   “ κ -equivalent”   units   by\ndefining   the   rescaled   mode\nˆ γ ℓm   ≡ D − 1\nℓ\nˆ γ E\nℓm   =  κ ℓm   +  n ℓm ,\nn ℓm   ≡ D − 1\nℓ n γ\nℓm .   (31)\nIn   these   units,   the   signal   and   noise   spectra   are   defined\nby"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n≡⟨| κ ℓm | 2 ⟩ ,"
+    },
+    {
+      "section": "N ℓ ≡⟨| n ℓm | 2 ⟩ =   N  γ",
+      "text": "ℓ\n| D ℓ | 2  .\n(32)\nBy construction,  ⟨| γ ℓm | 2 ⟩ =  C true\nℓ\nbecause  γ ℓm  in Eq. (31)\ndenotes   the   rescaled   field,   not   the   physical   shear   mode\nγ E\nℓm .\nAny   linear   estimator   can   then   be   written   with   a   mul-\ntipole   weight   ω ℓ as\nˆ κ ℓm   =  ω ℓ ˆ γ ℓm   =  ω ℓ ( κ ℓm  +  n ℓm )  .\n(33)\nThe   reconstructed   auto-spectrum   is"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ\n=  ⟨| ˆ κ ℓm | 2 ⟩ =  ω 2\nℓ\n\u0000"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n+  N ℓ\n\u0001\n,\n(34)\nand   the   cross-spectrum   with   the   truth   is"
+    },
+    {
+      "section": "C rec , true",
+      "text": "ℓ\n=  ⟨ ˆ κ ℓm κ ∗\nℓm ⟩ =  ω ℓ C true\nℓ\n,\n(35)\nusing   independence   of   signal   and   noise.   Inserting   these\n10\ninto   the   definition   of   r ℓ [Eq.   (28)]   gives\nr ℓ ="
+    },
+    {
+      "section": "C rec , true",
+      "text": "ℓ\np"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n=\nω ℓ C true\nℓ\nq\nω 2\nℓ\n\u0000"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n+  N ℓ\n\u0001"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n=\nω ℓ C true\nℓ\nω ℓ\nq\u0000"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n+  N ℓ\n\u0001"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n( ω ℓ >  0)\n=\ns"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ"
+    },
+    {
+      "section": "C true",
+      "text": "ℓ\n+  N ℓ\n≡ r max\nℓ\n.\n(36)\nCrucially,   the   filter   weight   ω ℓ cancels   and   any   posi-\ntive   linear   weight   yields   the   same   correlation   coefficient.\nThis   value   therefore   represents   the   fundamental   ceil-\ning   on   phase   recovery   for   all   linear   estimators.\nWhen"
+    },
+    {
+      "section": "N ℓ ≫ C true",
+      "text": "ℓ\n,   the ceiling necessarily declines,   independent\nof   filter   design.\nFigure 2 compares reconstruction methods on masked,\nnoisy data at resolution  N side   = 256 from the unseen test\ndataset.   The   real-space   residual   maps   (top   row)   demon-\nstrate systematic improvement across methods, with pro-\ngressively   lighter   regions   from   KS   to   WF   to   HF   indicat-\ning   smaller   and   more   spatially   uniform   errors.   Quanti-\ntatively,   the   pixelwise   regression   analysis   (middle   row)\nconfirms   HF   achieves   near-unity   slope   ( m   =   0 . 98)   with\nminimal   scatter,   whereas   WF   reduces   scatter   relative   to"
+    },
+    {
+      "section": "KS   but   introduces   systematic   bias   ( m   =   0 . 84)   through",
+      "text": "regressive   noise   reduction.   The   harmonic-space   diagnos-\ntics   (bottom   row)   reveal   complementary   insights   into   re-\nconstruction   fidelity."
+    },
+    {
+      "section": "KS   systematically   overestimates",
+      "text": "power   in   noise-dominated   regimes,   C rec , KS\nℓ"
+    },
+    {
+      "section": "/C true",
+      "text": "ℓ\n>   1,\nwhile   underestimating   large-scale   amplitudes.   WF   sup-\npresses   small-scale   power   through   regularization   and   ex-\nhibits   persistent   bias   for   ℓ ≳ 100.\nIn   contrast,   HF\nmaintains   accurate   amplitude   recovery   across   all   mul-\ntipoles,   with   ratios   closest   to   unity   throughout   the   ac-\ncessible   ℓ range.\nPhase   correlation   coefficients   exhibit\nsimilar   behavior,   where   both   KS   and   WF   approach   the\nlinear   theoretical   ceiling   r max\nℓ\n,   and   KS   shows   additional\ndegradation   on   large   scales.   At   N side   =   256,   this   the-\noretical   ceiling   begins   declining   near   ℓ ≈ 40   due   to   the\nnoise   term   in   Eq.   (36).   To   isolate   noise-induced   artifacts\nwithout   confounding   effects   from   pre/postprocessing,   we\npresent   unsmoothed   reconstructions   in   this   comparison.\nAppendix   A 3   examines   smoothing   as   a   commonly   em-\nployed   noise-reduction   technique.\nLinear estimators face a fundamental limit:   smoothing\ncan   suppress   noise   in   amplitude   recovery   ( C rec\nℓ"
+    },
+    {
+      "section": "/C true",
+      "text": "ℓ\n),\nbut   cannot   restore   phase   information   already   corrupted\nby   noise.   HF   circumvents   this   barrier   by   learning   a   non-\nlinear mapping that simultaneously denoises the field and\nrecovers small-scale phases beyond the linear ceiling  r max\nℓ\n,\nwhile   preserving   nearly   unbiased   amplitudes   across   all\nmultipoles.   Our   model   is   trained   at   a   fixed   noise   level\nand therefore learns the statistical properties of that spe-\ncific   noise   regime.   For   surveys   with   spatially   varying   or\ndifferent   noise   characteristics,   two   strategies   are   avail-\nable:   (i)   fine-tuning   the   pretrained   model   on   simulations\n0\n10\n20\n30\n40\n50\narcmins   from   edge   excluded\n0 . 0\n0 . 2\n0 . 4\n0 . 6"
+    },
+    {
+      "section": "KS",
+      "text": "0\n10\n20\n30\n40\n50\narcmins   from   edge   excluded\n0 . 85\n0 . 90\n0 . 95\n1 . 00\nρ"
+    },
+    {
+      "section": "KS",
+      "text": "0\n10\n20\n30\n40\n50\narcmins   from   edge   excluded\n0 . 0000\n0 . 0025\n0 . 0050\n0 . 0075"
+    },
+    {
+      "section": "FIG. 3.   Quantitative performance as a function of edge exclu-",
+      "text": "sion width.   We compute NRMSE,  ρ , and  D JS   on visible pixels\nafter   removing   those   within   a   specified   distance   of   the   mask\nboundary.   HF   remains   accurate   and   stable   across   all   exclu-\nsion   widths,   outperforming   traditional   methods   that   improve\nonly   when   large   edge   regions   are   discarded.\nmatching   the   target   noise   properties,   or   (ii)   training   on\ndata   spanning   a   range   of   galaxy   densities   to   learn   noise-\ninvariant   representations.   The   latter   enables   generaliza-\ntion   across   noise   regimes   without   retraining."
+    },
+    {
+      "section": "Border   effects",
+      "text": "Reconstruction   accuracy   degrades   near   survey   bound-\naries.   Harmonic   transforms   and   convolutions   propagate\nvalues   assigned   to   masked   pixels   into   neighboring   ob-\nserved regions,   creating systematic artifacts amplified by\nedge   discontinuities   [51].   Existing   solutions   such   as   dis-\ncrete   cosine   transforms   [37]   and   iterative   optimization\n[49]   provide   limited   improvement   at   substantial   compu-\ntational   expense.\nHF addresses this challenge through its asymmetric ar-\nchitecture.   The encoder processes only visible and inner-\nedge   patches,   representing   boundary   pixels   with   learn-\nable   MASK   tokens   rather   than   imputed   values.\nThis\ndesign   excludes   distant   masked   regions   from   processing,\nlimiting   error   propagation   and   enabling   accurate   recon-\nstruction   near   survey   edges.\nWe   quantify   border   effects   following   Mawdsley   et   al.\n[49].   For   each   test   map,   we   progressively   exclude   pixels\nwithin   increasing   distances   of   the   mask   boundary   and\nevaluate   NRMSE,   ρ ,   and   D JS   on   the   remaining   visible\npixels   (Fig.   3;   also   see   Sec.   III D).   KS   and   WF   show\nmarked gains as the exclusion width grows,   revealing de-\n11\ngraded   accuracy   near   edges.   HF   attains   higher   accuracy\nwith   no   exclusion   and   maintains   nearly   constant   perfor-\nmance   across   all   widths,   which   indicates   effective   sup-\npression   of   border   artifacts   and   reliable   reconstruction\nclose   to   survey   edges."
+    },
+    {
+      "section": "Rotation   invariance",
+      "text": "Deep   learning   models   on   the   sphere   must   remain   ac-\ncurate   under   arbitrary   rotations,   a   harder   requirement\nthan   translation   invariance   on   flat   maps.\nWe   enforce\nrotation   invariance   with   on-the-fly   random   rotations   of\nthe   masks   during   training   and   learnable   positional   em-\nbeddings   that   adapt   to   these   transformations.   We   have\ntested   that   fixed   (nonlearnable)   embeddings   fail   to   pre-\nserve   accuracy   under   rotation.\nAs   detailed   in   Appendix   A 5,   we   test   rotation   invari-\nance by applying random rotations to the DECaLS mask.\nReconstruction   quality   remains   stable   across   all   angles,\nand   pixelwise   comparisons   between   the   original   and   ro-\ntated   cases   are   nearly   identical.   This   demonstrates   ro-\nbust   rotation   invariance.\nIn   addition   to   rotations,   the\nsame   HEALFormer   model   handles   different   survey   foot-\nprints   without   retraining,   as   shown   in   Appendix   A 6."
+    },
+    {
+      "section": "A   central   requirement   for   deep   learning   on   weak   lens-",
+      "text": "ing mass mapping is the ability to train once and perform\nreliably   on   data   generated   under   different   cosmological\nparameters.\nAs   described   in   Sec.   III D,   earlier   experi-\nments   trained   HF   on   simulations   drawn   from   the   KiDS\nposterior   and   showed   strong   performance   across   diverse\ncosmologies   (Sec.   IV B).   To   exclude   the   possibility   that"
+    },
+    {
+      "section": "HF   is   merely   interpolating   within   the   training   set,   we",
+      "text": "train   HF   on   a   single   cosmology   fixed   to   the   Planck   2018\nparameters   and   evaluate   it   on   simulations   that   span   a\nbroad   range   of   models.   The   test   set   varies   the   matter\ndensity   Ω m   and   the   fluctuation   amplitude   σ 8 ,   with   cos-\nmologies   sampled   from   the   KiDS-450   posterior   [38].   If\nperformance   remains   stable,   this   indicates   that   HF   has\nlearned   the   mapping   from   shear   to   convergence   rather\nthan   exploiting   interpolation   in   parameter   space.\nFigure\n4\nshows\nthat\na\nmodel\ntrained\nonly\non\nPlanck   2018   transfers   cleanly   to   unseen   cosmologies.\nThe   reconstructed   amplitudes   remain   accurate   across\nall   test   cosmologies,   with   C rec\nℓ"
+    },
+    {
+      "section": "/C true",
+      "text": "ℓ\n≈ 1   over   a   wide\nrange   of   scales.\nPhase   recovery   is   similarly   robust:\nr ℓ surpasses   the   theoretical   limit   for   linear   estimators\non   small   scales   and   matches   WF   performance   at   large\nscales.   These results confirm the findings of Section IV B\nand   demonstrate   out-of-distribution   generalization   be-\nyond   the   training   cosmology.   However,   the   learned   prior\nremains   tied   to   the   training   simulations.   Whether   the\nmodel maintains accuracy under alternative cosmologies,\n0 . 2\n0 . 3\n0 . 4\n0 . 5\nΩ m\n0 . 5\n0 . 6\n0 . 7\n0 . 8\n0 . 9\n1 . 0\n1 . 1\n1 . 2\n1 . 3\nσ 8\nevaluation\nPlanck18\n10 1\n10 2\nℓ\n0 . 0\n0 . 5\n1 . 0\n1 . 5"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ /C true\nℓ"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2\nℓ\n0 . 8\n0 . 9\n1 . 0\nr ℓ\nmax"
+    },
+    {
+      "section": "FIG.   4.   Generalization   across   cosmologies.   Top:   distribution",
+      "text": "of (Ω m , σ 8 ) showing the training cosmology from Planck 2018\n(red   star),   sampled   test   cosmologies   (black   points),   and   the\nKiDS   posterior   (blue   contours).\nMiddle:\nangular   power-\nspectrum   ratio   C rec\nℓ"
+    },
+    {
+      "section": "/C true",
+      "text": "ℓ\nfor   HF   (blue)   versus   the   ideal\ntarget   (black   dotted).   Bottom:   cross-correlation   coefficient\nr ℓ between   reconstructed   and   true   fields."
+    },
+    {
+      "section": "HF   exceeds   the",
+      "text": "linear-method   ceiling   r max\nℓ\nat   small   scales   and   matches   WF\nperformance   at   large   scales   ℓ ≲ 10.\nbaryonic   feedback,   or   extensions   beyond   ΛCDM   is   an\nopen   question   for   future   investigation."
+    },
+    {
+      "section": "A   central   difficulty   in   high-resolution   mass   mapping   is",
+      "text": "the larger per pixel noise that obscures small-scale struc-\nture.   Linear   estimators   such   as   the   WF   reduce   noise   by\naggressively   surpassing   amplitudes   and   do   not   recover\nphase   information   where   noise   dominates.\nIt   also   re-\nquires   accurate   priors   for   signal   and   noise   covariances\nand   relies   on   iterative   solves   that   are   costly,   for   example\n∼ 2   hours   for   a   single   N side   =   1024   map.   HF   learns   a\nnonlinear mapping from shear to convergence and avoids\nexplicit   covariance   priors.   Once   trained,   it   performs   in-\n12\nference   in   seconds,   which   enables   pipelines   that   require\nmany reconstructions such as simulation based inference.\nFigure   5   presents   high-resolution   results   at   N side   =\n1024,   where   per-pixel   noise   exceeds   that   of   the   N side   =\n256   case   (Fig.   2)   and   increases   scatter   in   the   pixelwise\ncomparison.   Despite   this   challenge,   HF   trained   with   the\ncoarse-to-fine strategy (Sec. III E 3) produces the cleanest\nresidual   maps   and   smallest   scatter   among   all   methods,\ndemonstrating   effective   denoising.   The   reconstruction   is\nnearly unbiased in pixel space ( m  ≈ 1), and the one-point\ndistribution   of   the   reconstructed   convergence   tracks   the\ntruth   more   closely   than   KS   or   WF   (Appendix   A 4).   In\nharmonic   space,   HF   matches   WF   at   large   scales   while\nexceeding   the   theoretical   phase-recovery   bound   r max\nℓ\nat\nsmall   scales.\nThese   results   reproduce   the   trends   at   lower   resolution\nin   Fig.   2.   HF   scales   robustly   to   higher   resolution,   ad-\ndresses   the   denoising   challenge,   and   meets   throughput\nconstraints,   with   training   feasible   on   a   single   GPU."
+    },
+    {
+      "section": "Painting   at   high   resolution",
+      "text": "Painting reconstructs values in edge pixels near survey\nboundaries by using nonlocal information from surround-\ning observations.   In HF this is implemented with a learn-\nable MASK token that encodes masked pixels or patches.\nUnlike   zero   filling   in   earlier   work   such   as   DeepMass,   this\nrepresentation   avoids   confusing   missing   data   with   true\nzeros.   Training   uses   an   adaptive   weighted   loss   to   bal-\nance   contributions   from   visible,   inner-edge,   and   distant\nmasked   pixels   (Sec.   III E 4).\nWe   evaluate   painting   within   the   DECaLS   footprint   at"
+    },
+    {
+      "section": "N side   = 1024   using   the   two   40 ◦ ×  40 ◦ regions   highlighted",
+      "text": "in Fig. 6:   one dominated by pointlike (red) and one with\nextended   masked   holes   (yellow).\nNote   that   the   mass\nmapping   is   performed   on   the   sphere   and   these   square\ncutouts   are   shown   to   visualize   the   reconstructions.\nFigure   7   summarizes   the   results.   Residual   maps   re-\nveal that HF produces the cleanest reconstructions,   with\nfaint grid patterns reflecting imperfect denoising that re-\nmain   subdominant.   Pixelwise   tests   of   masked   pixels   in\nthe   pointlike   region   exhibit   near-unity   slope   ( m   ≈ 1)\nwith   minimal   scatter,   maintaining   consistency   with   the\nperformance   achieved   in   visible   pixels   (Sec.   IV B).   The\nlarge-hole region presents greater difficulty, where scatter\nincreases   and   the   slope   degrades   to   m  = 0 . 82.   Neverthe-\nless,   HF   maintains   superior   performance   relative   to   all\ncompeting methods across both masked geometries.   The\nreconstruction   quality   achieved   in   these   diverse   configu-\nrations confirms that the model performs robust painting\nacross   realistic   survey   footprints   with   varying   masked-\nregion   morphologies."
+    },
+    {
+      "section": "Conclusion",
+      "text": "We have presented HEALFormer,   a transformer-based\narchitecture   for   weak   lensing   mass   mapping   that   oper-\nates natively on the HEALPix sphere and accommodates\nrealistic   survey   footprints   from   DES,   KiDS,   DECaLS,\nand   Planck   through   learnable   mask   tokens.\nTrained\nwith   shape   noise   at   LSST-Y10/Euclid   levels   ( n gal   =\n30 arcmin − 2 ),   HEALFormer   outperforms   Kaiser-Squires\nand Wiener filter reconstructions at both  N side   = 256 and\n1024,   achieving   lower   normalized   RMSE,   higher   Pear-\nson   correlation   ρ ,   and   reduced   Jensen-Shannon   diver-\ngence   D JS .   Residual   maps   and   one-to-one   comparisons\nreveal   minimal   bias with   reduced   scatter relative to   clas-\nsical   methods.   In   harmonic   space,   the   cross-correlation\ncoefficient   r ℓ exceeds   the   linear-method   ceiling   r max\nℓ\n,\ndemonstrating   phase   recovery   beyond   what   linear   ap-\nproaches   can   achieve.   Unlike   the   Wiener   filter,   HEAL-\nFormer learns the shear-to-convergence mapping directly\nfrom data without requiring explicit covariance matrices,\nthough the current implementation assumes a fixed noise\nlevel   that   is   implicitly   encoded   in   the   learned   weights.\nParameter-efficient   fine-tuning   via   LoRA   enables   train-\ning and inference on a single GPU while maintaining high\nreconstruction   fidelity   across   diverse   survey   geometries\nand   mitigating   border   effects.   The   model   generalizes   to\ncosmologies   not   encountered   during   training,   confirming\nthat   it   captures   the   underlying   physical   transformation\nrather   than   memorizing   training   examples.   By   recover-\ning   both   amplitude   and   phase   with   unprecedented   accu-\nracy   and   exceeding   linear-theory   limits   at   small   scales,\nHEALFormer   establishes   a   practical,   efficient,   and   phys-\nically   principled   approach   to   spherical   mass   mapping   for\ncurrent   and   next-generation   wide-field   surveys.\nThe architecture embodies three key advances that ad-\ndress   fundamental   challenges   in   spherical   weak   lensing\nanalysis.   It   operates   natively   on   the   sphere   by   process-\ning HEALPix inputs with learnable position embeddings\nthat   encode   sky   geometry   and   avoid   flat-sky   approxima-\ntions.   It   scales   efficiently   through   a   coarse-to-fine   train-\ning   strategy   combined   with   LoRA   fine-tuning,   enabling\nhigh-resolution   reconstruction   at   N side   =   1024   on   stan-\ndard   hardware.\nIt   handles   complex   survey   geometries\nthrough   learnable   mask   tokens   that   explicitly   represent\nmissing   data,   allowing   principled   inpainting   and   robust\nrecovery   across   irregular   footprints.\nSeveral   directions   remain   open.   The   present   work   as-\nsumes a fixed ΛCDM cosmology and idealized simulation\nconditions;   extending   to   alternative   cosmological   mod-\nels   (e.g.,   dynamical   dark   energy,   modified   gravity)   and\nincorporating   baryonic   physics   (e.g.,   AGN   feedback)   are\nimportant avenues.   The current model also learns an im-\nplicit   noise-level   prior   from   the   training   data;   extending\nto   non-Gaussian   and   spatially   correlated   noise   compo-\nnents   would   better   capture   realistic   observational   con-\nditions.\nReducing   patch   size   may   improve   reconstruc-\ntion fidelity at increased computational cost.   Developing\ncontrolled inpainting strategies beyond survey footprints,\n13\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ KS\nideal\nm  = 2 . 63"
+    },
+    {
+      "section": "D JS   = 0 . 0958",
+      "text": "ρ  = 0 . 54\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ WF\nideal\nm  = 0 . 55"
+    },
+    {
+      "section": "D JS   = 0 . 0530",
+      "text": "ρ  = 0 . 67\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ HF\nideal\nm  = 0 . 96"
+    },
+    {
+      "section": "D JS   = 0 . 0008",
+      "text": "ρ  = 0 . 96\n10 1\n10 2\n10 3\nℓ\n0 . 0\n0 . 5\n1 . 0\n1 . 5"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ /C true\nℓ"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2\n10 3\nℓ\n0 . 8\n0 . 9\n1 . 0\nr ℓ\nmax"
+    },
+    {
+      "section": "KS",
+      "text": "| ∆ κ KS |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n0\n1"
+    },
+    {
+      "section": "FIG.   5.   High-resolution   comparison   on   noisy   N side   = 1024   maps   with   the   DECaLS   mask.   Top:   residual   maps   of   reconstruction",
+      "text": "error;   KS   shows   the   largest   deviations,   WF   improves   accuracy,   and   HF   is   the   cleanest.   Middle:   pixelwise   comparisons   of\nreconstructed   versus   true   convergence;   HF   has   the   smallest   scatter   and   slope   m   closest   to   unity,   where   m   is   the   fitted   slope.\nBottom:   harmonic   domain   results   showing   power-spectrum   ratios   (left)   and   phase   correlations   (right).   WF   suppresses   small-\nscale   noise;   HF   maintains   the   best   performance   across   all   scales,   matches   WF   on   large   scales   ( ℓ ≲ 10),   and   exceeds   the   phase\nrecovery   limit   at   small   scales   (black   line).\nanalogous to constrained realizations in the Wiener filter,\ncould   expand   the   effective   reconstruction   area.   We   will\nexplore   these   extensions   in   future   work.\nThis   research   leveraged   several   essential   open-source\nscientific   computing   tools.\nFor   core   numerical   com-\nputations,   we   utilized   NumPy   [52]   and   SciPy   [53].\nThe   spherical   data   manipulation   was   performed   using\nHEALPix/healpy   [1,   54],   while   cosmological   calculations\nrelied   on   CCL   [39].   Our   deep   learning   implementation\nwas   built   on   PyTorch   [55]   and   the   Transformers   [56]."
+    },
+    {
+      "section": "ACKNOWLEDGEMENTS",
+      "text": "This\nwork\nwas\nsupported\nby\nthe\nNational\nKey"
+    },
+    {
+      "section": "YFA1607801,   No.   2023YFA1607802),   the   National",
+      "text": "Science   Foundation   of   China   (Grant   No.   12595310,   No.\n12273020),   the   China   Manned   Space   Project   with   No."
+    },
+    {
+      "section": "CMS-CSST-2025-A04,",
+      "text": "the   “111”   Project   of   the   Ministry   of   Education   under\nGrant   No.   B20019,   and   the   sponsorship   from   Yangyang\nDevelopment   Fund.\nThis   project   is   supported   in   part\nby   Office   of   Science   and   Technology,   Shanghai   Munici-\npal   Government   (Grant   No.   24DX1400100,   No.   ZJ2023-"
+    },
+    {
+      "section": "ZD-001).   This   work   made   use   of   the   Gravity   Supercom-",
+      "text": "puter   at   the   Department   of   Astronomy,   Shanghai   Jiao\nTong   University,   which   enabled   the   large-scale   experi-\nments   presented   in   this   work."
+    },
+    {
+      "section": "DATA   AVAILABILITY",
+      "text": "The   data   that   support   the   findings   of   this   article   are\nopenly   available   [57],   embargo   periods   may   apply.\n14\nDECaLS   mask\nvisible\nedge\nmasked"
+    },
+    {
+      "section": "FIG.   6.   DECaLS   mask   at   N side   =   1024   with   two   40 ◦ ×  40 ◦",
+      "text": "regions   marked.\nThe   full-sky   view   separates   observed   pix-\nels   (dark   blue),   masked   pixels   along   the   survey   boundary\n(light   blue),   and   distant   masked   pixels   excluded   from   anal-\nysis   (grey).   The   red   square   contains   masked   points,   and   the\nyellow   square   contains   extended   masked   holes.\n15\n− 0 . 025   0 . 000\n0 . 025\nκ true\n− 0 . 04\n− 0 . 02\n0 . 00\n0 . 02\n0 . 04\nκ KS\nideal\nm  = 2 . 35"
+    },
+    {
+      "section": "D JS   = 0 . 0743",
+      "text": "ρ  = 0 . 57\n− 0 . 025   0 . 000\n0 . 025\nκ true\n− 0 . 04\n− 0 . 02\n0 . 00\n0 . 02\n0 . 04\nκ WF\nideal\nm  = 0 . 56"
+    },
+    {
+      "section": "D JS   = 0 . 0536",
+      "text": "ρ  = 0 . 67\n− 0 . 025   0 . 000\n0 . 025\nκ true\n− 0 . 04\n− 0 . 02\n0 . 00\n0 . 02\n0 . 04\nκ HF\nideal\nm  = 0 . 96"
+    },
+    {
+      "section": "D JS   = 0 . 0042",
+      "text": "ρ  = 0 . 97\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ KS\nideal\nm  = 1 . 84"
+    },
+    {
+      "section": "D JS   = 0 . 0249",
+      "text": "ρ  = 0 . 51\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ WF\nideal\nm  = 0 . 47"
+    },
+    {
+      "section": "D JS   = 0 . 0780",
+      "text": "ρ  = 0 . 61\n− 0 . 02\n0 . 00\n0 . 02\nκ true\n− 0 . 02\n0 . 00\n0 . 02\nκ HF\nideal\nm  = 0 . 82"
+    },
+    {
+      "section": "D JS   = 0 . 0143",
+      "text": "ρ  = 0 . 85\n| ∆ κ KS |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n0\n1"
+    },
+    {
+      "section": "FIG.   7.   Reconstruction   quality   across   masked   pixels   within   the   two   selected   DECaLS   regions   at   N side   =   1024.   The   top   row",
+      "text": "displays   residual   maps   for   each   method.   The   middle   rows   present   magnified   views   of   the   pointlike   (red   box)   and   large-hole\n(yellow   box)   regions   marked   in   Fig.   6,   showing   both   visible   and   inner-edge   pixels   that   were   unseen   during   reconstruction.\nThe   bottom   rows   provide   pixelwise   comparisons   between   reconstructed   and   true   convergence   for   inner-edge   pixels   only.   In\nthe   point-like   region,   HF   achieves   nearly   unbiased   reconstruction   with   slope   m   ≈ 1   and   minimal   scatter.   Although   the   large-\nhole   region   presents   greater   difficulty   due   to   its   extended   masked   area,   HF   maintains   superior   performance   with   the   smallest\nresiduals   and   tightest   correlation   relative   to   competing   methods.   Faint   grid   artifacts   visible   in   the   HF   residual   maps   arise\nfrom   imperfect   denoising   but   remain   subdominant,   confirming   that   HF   delivers   the   highest   reconstruction   fidelity   across   both\nmasked   geometries.\n16"
+    },
+    {
+      "section": "Position   embedding",
+      "text": "Self-attention   [Eq.   (17)]   is   permutation   invariant:\nswapping   two   input   tokens   leaves   the   output   unchanged.\nTo   encode   the   geometry   of   the   sphere,   we   add   explicit\npositional   information   to   the   patch   tokens   so   the   model\ncan   learn   spatial   relationships   on   the   HEALPix   grid.\nWe   consider   (i)   fixed   sinusoidal   embeddings   and   (ii)\nlearnable embeddings.   The fixed scheme of Vaswani et al.\n[35]   assigns   a   deterministic   vector   to   each   position   index\npos :"
+    },
+    {
+      "section": "PE pos,  2 i   = sin",
+      "text": "\u0010\npos\n10000   2 i/d model\n\u0011\n,"
+    },
+    {
+      "section": "PE pos,  2 i +1   = cos",
+      "text": "\u0010\npos\n10000   2 i/d model\n\u0011\n,"
+    },
+    {
+      "section": "(A2)",
+      "text": "with   i  = 0 , . . . ,  ( d model / 2  − 1).   This   choice   is   parameter-\nfree   and   exposes   relative   offsets   through   inner   products.\nLearnable   embeddings   instead   assign   a   trainable   vector\nto   each   position   [58],   as   in   BERT   [22].   In   both   cases   we\nadd   the   positional   vector   to   the   patch   embedding   before\nthe   Transformer   blocks.\nHEALPix   with   NEST   ordering   provides   a   natural   1D\nsequence;   following   Dosovitskiy   et   al.   [36],   we   therefore\nadopt   1D   positional   indices   rather   than   constructing   an\nexplicit   2D   scheme.   This   retains   HEALPix’s   hierarchi-\ncal   neighborhood   structure   while   keeping   the   embedding\nsimple.\nOn fixed survey masks, fixed and learnable embeddings\nperform   essentially   identically   in   both   amplitude   and\nphase recovery (Fig. 8,   top and bottom panels).   The dif-\nference   appears   when   we   randomly   rotate   the   mask-map\npairs   during   training   and   evaluation.\nFixed   sinusoidal\nembeddings   fail   to   converge   reliably   under   these   rota-\ntions, whereas learnable embeddings adapt and maintain\nperformance.\nIn   practice,   if   rotation   invariance   is   not\nrequired,   fixed   embeddings   are   an   adequate,   lightweight\nchoice;   when   rotation   augmentation   is   used,   learnable\nembeddings   are   necessary.\nTo   reach   N side   = 1024   efficiently   we   train   coarsely   and\nthen   fine-tune   at   high   resolution.\nThis   requires   lifting\nlow-resolution   positional   vectors   to   the   finer   grid.\nWe\ntested   two   strategies:\n(i)   projection,   a   learned   map-\nping   from   coarse   to   fine   positions;   and   (ii)   bilinear\ninterpolation,   a   parameter-free   upsampling.\nInterpo-\nlation   introduces   a   pronounced   wiggle   in   the   power-\nspectrum   ratio   near   ℓ ∼ 100   and   degrades   r ℓ ,   whereas\nprojection   is   stable   across   scales   (Fig.   9).   We   therefore\nadopt   projection   when   increasing   resolution.\nAdditive   position   embeddings   are   essential   for   spher-\nical   mass   mapping   with   transformers.   Fixed   sinusoidal\nembeddings   suffice   for   static   mask   geometry;   learnable\nembeddings   are   preferred   when   rotation   augmentation\nor   geometry   adaptation   is   required.   For   high-resolution\napplications,   projecting   coarse   learnable   embeddings   to\n10 1\n10 2\nℓ\n0 . 0\n0 . 5\n1 . 0\n1 . 5"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2\nℓ\n0 . 8\n0 . 9\n1 . 0\nr ℓ\nmax"
+    },
+    {
+      "section": "FIG.   8.   Fixed   (sinusoidal)   vs.   learnable   position   embeddings",
+      "text": "on   the   sphere   at   N side   =   256   with   the   DECaLS   mask.   Top:\nratio   of   reconstructed   to   true   C ℓ ;   bottom:   cross-correlation\ncoefficient  r ℓ .   For fixed masks the two choices are statistically\nindistinguishable,   but   only   learnable   embeddings   remain   sta-\nble   under   random   rotations.\n10 1\n10 2\n10 3\nℓ\n0 . 0\n0 . 5\n1 . 0\n1 . 5"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2\n10 3\nℓ\n0 . 8\n0 . 9\n1 . 0\nr ℓ\nmax"
+    },
+    {
+      "section": "FIG.   9.   Upscaling   learnable   position   embeddings   from   coarse",
+      "text": "to fine grids at  N side   = 1024.   A learned projection from coarse\nto fine positions (blue) is stable and preserves both amplitude\n(top) and phase (bottom).   Simple bilinear interpolation (red)\ninduces   a   wiggle   around   ℓ ∼ 100   and   lowers   r ℓ .\nthe   fine   grid   avoids   spectral   artifacts   and   preserves   re-\nconstruction   fidelity.\n17\n− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ true",
+      "text": "− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ KS",
+      "text": "ideal\nm  = 0 . 96"
+    },
+    {
+      "section": "D JS   = 0 . 0009",
+      "text": "ρ  = 0 . 99\n− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ true",
+      "text": "− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ WF",
+      "text": "ideal\nm  = 1 . 00"
+    },
+    {
+      "section": "D JS   = 0 . 0001",
+      "text": "ρ  = 1 . 00\n− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ true",
+      "text": "− 0 . 01\n0 . 00\n0 . 01"
+    },
+    {
+      "section": "κ HF",
+      "text": "ideal\nm  = 1 . 00"
+    },
+    {
+      "section": "D JS   = 0 . 0002",
+      "text": "ρ  = 1 . 00\n10 1\n10 2"
+    },
+    {
+      "section": "ℓ",
+      "text": "0 . 5\n1 . 0"
+    },
+    {
+      "section": "C rec",
+      "text": "ℓ /C true\nℓ"
+    },
+    {
+      "section": "KS",
+      "text": "10 1\n10 2"
+    },
+    {
+      "section": "ℓ",
+      "text": "0 . 8\n1 . 0"
+    },
+    {
+      "section": "| ∆ κ HF |  /σ κ true",
+      "text": "0\n1"
+    },
+    {
+      "section": "Method",
+      "text": "row:   normalized   residual   maps   showing   spatial   distribution   of   reconstruction   errors.   Middle   row:   Pixel-by-pixel   comparison\nbetween   reconstructed   and   true   convergence   values,   with   perfect   reconstruction   represented   by   the   diagonal   line.\nBottom\nrow:   harmonic-space   evaluation   showing   angular   power-spectrum   ratio   and   cross-correlation   coefficient   ( r ℓ ),   with   the   dashed\ngrey   line   indicating   theoretical   perfect   phase   reconstruction.   WF   demonstrates   near-perfect   reconstruction   in   both   pixel   and\nharmonic   space,   KS   shows   significant   degradation   at   large   scales,   while   HF   achieves   high   fidelity   across   all   scales."
+    },
+    {
+      "section": "limit",
+      "text": "Here,   we   assess   the   impact   of   survey   masks   on   conver-\ngence   reconstruction   in   the   absence   of   shape   noise.   This\nidealized   scenario   isolates   the   effect   of   missing   data   from\nobservational   noise.   In   most   areas,   when   typical   survey\nmasks   remain   largely   contiguous,   the   information   con-\ntained   within   the   observed   region   suffices   for   accurate\nrecovery   of   the   convergence   field.\nThe   three   methods   employ   fundamentally   different\nstrategies   to   handle   masked   pixels.   KS   fills   masked   re-\ngions with zeros, which introduces biased reconstruction.\nWF assigns infinite noise variance to masked pixels, effec-\ntively excluding them from the reconstruction while solv-\ning   for   their   values   through   the   spatial   covariance   struc-\nture."
+    },
+    {
+      "section": "HF   represents   masked   pixels   explicitly   through",
+      "text": "learnable   MASK   tokens   that   enable   the   network   to   in-\npaint   missing   regions   based   on   patterns   learned   during\ntraining.\nFrom\nan\ninformation-theoretic\nperspective,\nnear-\nperfect   convergence   recovery   should   be   achievable   in\nthe   noise-free   masked   case.\nFor   WF,   the   solution   in\nEq.   (16)   remains   well-defined   even   when   the   matrix\n( S − 1\nκ\n+   A † N − 1 A )   lacks   full   rank,   since   pseudoinverse\nmethods   apply.   With   contiguous   survey   footprints,   the\neffective   system   approaches   full   rank,   permitting   near-\nperfect   phase   reconstruction   ( r ℓ =   1)   as   demonstrated\nby   AKRA   [10,   11].\nFigure   10   confirms   these   expectations.   WF   achieves\nnear-perfect   reconstruction   in   both   pixel   and   harmonic\nspace because assigning infinite noise variance to masked\npixels   eliminates   dependence   on   the   signal   covariance,\nleaving only the precisely known noise covariance to con-\ntrol   the   solution.   KS   exhibits   substantial   degradation   at\nlarge   scales,   unable   to   distinguish   genuinely   masked   re-\n18\n0\n50\n100\n150\n200\nSmoothing   scale   (arcmin)\n0 . 0\n0 . 2\n0 . 4\n0 . 6"
+    },
+    {
+      "section": "KS",
+      "text": "0\n50\n100\n150\n200\nSmoothing   scale   (arcmin)\n0 . 85\n0 . 90\n0 . 95\n1 . 00\nρ"
+    },
+    {
+      "section": "KS",
+      "text": "0\n50\n100\n150\n200\nSmoothing   scale   (arcmin)\n0 . 0000\n0 . 0025\n0 . 0050\n0 . 0075"
+    },
+    {
+      "section": "Method",
+      "text": "across   different   smoothing   scales   in   the   visible   region.   The\ndashed   black   line   represents   the   perfect   reconstruction   limit."
+    },
+    {
+      "section": "HF   (blue   line)   demonstrates   superior   performance   across   all",
+      "text": "evaluation   metrics   and   the   entire   range   of   smoothing   scales.\ngions   from   true   zero-valued   signal.   HF   approaches   the\nWF result but does not fully match it.   This residual dis-\ncrepancy likely reflects the fact that noise-free masked re-\nconstruction is fundamentally linear,   whereas the HF ar-\nchitecture has been optimized to capture nonlinear map-\npings   that   dominate   in   realistic   noise-contaminated   sce-\nnarios."
+    },
+    {
+      "section": "A   common   approach   to   mitigate   noise   in   weak   lens-",
+      "text": "ing   maps   is   to   apply   smoothing.   We   evaluate   the   recon-\nstruction performance of different methods under varying\nsmoothing   scales,   as   illustrated   in   Fig.   11.   The   smooth-\ning is implemented using a Gaussian kernel, characterized\nby   its   full   width   at   half   maximum.   For   this   analysis,   we\nemploy   a   simplified   approach   without   mask   apodization.\nTo   prevent   power   leakage   effects   in   the   smoothing   pro-\ncess,   masked   pixels   are   set   to   zero,   and   our   comparison\nfocuses exclusively on the visible region.   Across all quan-\ntitative   metrics   (NRMSE,   ρ ,   D JS ),   HEALFormer   consis-\ntently   outperforms   other   methods.\nThis   superior   per-\nformance   persists   even   at   large   smoothing   scales   ( ∼ 200\narcmin)   where   noise   is   effectively   eliminated.   Further-\nmore,   HEALFormer   exhibits   remarkable   stability   in   its\nperformance   across   the   entire   range   of   smoothing   scales,\ndemonstrating   its   robustness   to   varying   levels   of   map\nsmoothing."
+    },
+    {
+      "section": "PDF   of   reconstructed   convergence   fields",
+      "text": "To   further   evaluate   reconstruction   quality,   we   analyze\nthe   statistical   properties   of   the   recovered   convergence\nfields   through   their   one-dimensional   probability   distri-\nbution   functions   (PDFs).   Figure   12   presents   a   compre-\nhensive comparison using the Jensen-Shannon divergence\n( D JS )   as   a   quantitative   measure   of   distribution   similar-\nity.\nThe   analysis   reveals   that   increased   noise   at   high\nresolution severely impacts both KS and WF reconstruc-\ntions,   with   WF’s   inherent   noise   suppression   resulting   in\nan   artificially   narrow   distribution.   In   contrast,   HEAL-\nFormer demonstrates remarkable consistency across both\nresolution   regimes,   preserving   the   true   convergence   dis-\ntribution   with   high   fidelity.   This   superior   performance\nin maintaining accurate statistical properties further vali-\ndates HEALFormer’s effectiveness as a robust reconstruc-\ntion   method."
+    },
+    {
+      "section": "Rotation   invariance",
+      "text": "A key advantage of our model is its ability to maintain\nreconstruction   accuracy   under   arbitrary   rotations   of   the\nmask.   While CNNs operating on flat maps naturally pos-\nsess   translation   invariance,   achieving   rotation   invariance\nfor   spherical   maps   presents   unique   challenges.\nTo   ensure   rotation   invariance,   we   incorporate   ran-\ndom   rotations   during   the   training   process   by   rotating\nthe   HEALPix   maps   on-the-fly.   This   data   augmentation\nstrategy   proves   essential,   as   vanilla   position   embeddings\nfail   to   maintain   invariance   under   rotation   due   to   their\nfixed   relative   position   encoding.   In   contrast,   our   learn-\nable position embeddings demonstrate remarkable adapt-\nability   to   rotational   transformations.\nAs   illustrated   in\nFig.   13,   we   evaluate   this   capability   by   applying   random\nrotations to the DECaLS mask.   The results show consis-\ntent   reconstruction   quality   across   multiple   rotation   an-\ngles,   with nearly identical pixel-by-pixel comparisons be-\ntween the original and rotated configurations, confirming\nthe   model’s   robust   rotation   invariance."
+    },
+    {
+      "section": "Single   model   for   different   masks",
+      "text": "Convolutional   models   such   as   DeepMass   [15]   require\nfixed-size inputs and therefore must be retrained for each\nsurvey   footprint.   Our   transformer   processes   HEALPix\ndata   as   variable-length   sequences,   so   one   network   can\nhandle   many   footprints   without   additional   training.   Be-\ncause each mask reveals a different number of visible pix-\nels,   the   input   length   changes   from   case   to   case,   yet   the\nmodel generalizes well to unseen masks.   This design pro-\nvides   an   efficient   and   adaptable   solution   for   mass   map-\nping   across   diverse   survey   geometries.\nTo   demonstrate   this   flexibility,\nwe   evaluated   our\nmodel’s   performance   across   multiple   survey   configura-\ntions   (KiDS,   DES,   DECaLS,   and   Planck   masks)   using   a\n19\n− 0 . 01\n0 . 00\n0 . 01\nκ   ( N side   = 256)\n0\n1000\n2000\n3000\n4000\n5000\nκ true\nκ KS"
+    },
+    {
+      "section": "D JS   = 0 . 0049",
+      "text": "− 0 . 01\n0 . 00\n0 . 01\nκ   ( N side   = 256)\n0\n1000\n2000\n3000\n4000\n5000\nκ true\nκ WF"
+    },
+    {
+      "section": "D JS   = 0 . 0072",
+      "text": "− 0 . 01\n0 . 00\n0 . 01\nκ   ( N side   = 256)\n0\n1000\n2000\n3000\n4000\n5000\nκ true\nκ HF"
+    },
+    {
+      "section": "D JS   = 0 . 0005",
+      "text": "− 0 . 02\n0 . 00\n0 . 02\nκ   ( N side   = 1024)\n0\n2500\n5000\n7500\n10000\n12500\nκ true\nκ KS"
+    },
+    {
+      "section": "D JS   = 0 . 0854",
+      "text": "− 0 . 02\n0 . 00\n0 . 02\nκ   ( N side   = 1024)\n0\n2500\n5000\n7500\n10000\n12500\nκ true\nκ WF"
+    },
+    {
+      "section": "D JS   = 0 . 0512",
+      "text": "− 0 . 02\n0 . 00\n0 . 02\nκ   ( N side   = 1024)\n0\n2500\n5000\n7500\n10000\n12500\nκ true\nκ HF"
+    },
+    {
+      "section": "FIG.   12.   One-dimensional   PDFs   of   reconstructed   convergence   fields   in   visible   regions   at   low   ( N side   =   256,   top   row)   and   high",
+      "text": "resolution ( N side   = 1024, bottom row).   The panels compare KS (left), WF (middle), and HF (right) reconstructions against the\ntrue   convergence   distribution   (black).   The   Jensen-Shannon   divergence   ( D JS )   quantifies   the   similarity   between   reconstructed\nand true distributions, with  D JS   = 0 indicating perfect agreement.   At high resolution, increased noise significantly degrades KS\nand WF performance compared to low resolution results.   While WF’s aggressive noise suppression leads to an overly compressed\ndistribution,   HF   maintains   excellent   fidelity   to   the   true   distribution   at   both   resolutions,   as   evidenced   by   its   consistently   low"
+    },
+    {
+      "section": "D JS   values.",
+      "text": "− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 010\n− 0 . 005\n0 . 000\n0 . 005\n0 . 010\nκ HF\nideal\nm  = 0 . 98"
+    },
+    {
+      "section": "D JS   = 0 . 0004",
+      "text": "ρ  = 0 . 97\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 01\n0 . 00\n0 . 01\nκ HF\nideal\nm  = 0 . 97"
+    },
+    {
+      "section": "D JS   = 0 . 0005",
+      "text": "ρ  = 0 . 97\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 01\n0 . 00\n0 . 01\nκ HF\nideal\nm  = 0 . 98"
+    },
+    {
+      "section": "D JS   = 0 . 0005",
+      "text": "ρ  = 0 . 97\n− 0 . 01\n0 . 00\n0 . 01\nκ true\n− 0 . 01\n0 . 00\n0 . 01\nκ HF\nideal\nm  = 0 . 98"
+    },
+    {
+      "section": "D JS   = 0 . 0004",
+      "text": "ρ  = 0 . 98\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n0\n1"
+    },
+    {
+      "section": "FIG. 13.   Demonstration of rotation invariance using the DECaLS mask at  N side   = 256.   The top row displays normalized residual",
+      "text": "maps while the bottom row shows pixel-by-pixel comparisons for different random rotations.   Despite changes in mask geometry\ndue   to   HEALPix   pixelization,   our   model   maintains   consistent   reconstruction   quality   across   all   rotations,   demonstrating   robust\nrotation   invariance.\nsingle   trained   model.   As   shown   in   Fig.   14,   our   approach\nprocesses   variable-sized   inputs   by   retaining   only   visible\nand   edge   pixels,   achieving   superior   reconstruction   qual-\nity   compared   to   traditional   methods.\nWhile   all   meth-\nods,   including   ours,   show   reduced   performance   at   outer\nedge due to limited information propagation from visible\nregions,   HF   consistently   maintains   better   overall   recon-\nstruction   accuracy   across   different   mask   configurations.\n[1]   K.   M.   G´orski,   E.   Hivon,   A.   J.   Banday,   B.   D.   Wandelt,"
+    },
+    {
+      "section": "F.   K.   Hansen,   M.   Reinecke,   and   M.   Bartelmann,   Astro-",
+      "text": "phys.   J.   622 ,   759   (2005),   arXiv:astro-ph/0409513.\n20\nKiDS"
+    },
+    {
+      "section": "DES",
+      "text": "DECaLS\nPlanck\nvisible\nedge   masked\n| ∆ κ KS |  /σ κ true\n| ∆ κ KS |  /σ κ true\n| ∆ κ KS |  /σ κ true\n| ∆ κ KS |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ WF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n| ∆ κ HF |  /σ κ true\n0\n1"
+    },
+    {
+      "section": "FIG. 14.   Comparison of normalized residual maps for different survey masks (KiDS, DES, DECaLS, and Planck) at  N side   = 256.",
+      "text": "The first row shows the visible (dark blue), edge (light blue) and masked (grey) regions.   The visible region contains observation\ndata,   while   the   edge   region   comprises   pixels   near   survey   boundaries   and   inner   holes.   The   masked   region   represents   pixels   far\nfrom   the   survey   boundary   that   are   not   relevant   for   reconstruction.   The   second   through   fourth   rows   show   normalized   residual\nmaps   for   KS,   WF,   and   HF   reconstructions   respectively.   HF   demonstrates   superior   performance   with   the   lightest   residuals,\ndespite using a single model for all four masks.   All methods show similar limitations in reconstructing outer edge, where limited\ninformation   from   visible   regions   constrains   recovery   capabilities.\n[2]   L."
+    },
+    {
+      "section": "S.",
+      "text": "Collaboration,\nLarge\nsynoptic\nsurvey\ntelescope:\nDark   energy   science   collaboration   (2012),\narXiv:1211.0310   [astro-ph].\n[3]   R. Scaramella,   J. Amiaux,   Y. Mellier,   C. Burigana,   C. S.\nCarvalho, J.-C. Cuillandre, A. D. Silva, A. Derosa, J. Di-\nnis,   E.   Maiorano,   M.   Maris,   I.   Tereno,   R.   Laureijs,"
+    },
+    {
+      "section": "T.   Boenke,   G.   Buenadicha,   X.   Dupac,   L.   M.   G.   Venan-",
+      "text": "cio,   P.   G´omez- ´ Alvarez,   J.   Hoar,   J.   L.   Alvarez,   G.   D.\nRacca,   G.   Saavedra-Criado,   J.   Schwartz,   R.   Vavrek,"
+    },
+    {
+      "section": "M.   Cropper,   A.   Ealet,   B.   Garilli,   W.   Gillard,   B.   R.",
+      "text": "Granett,   L. Guzzo,   H. Hoekstra,   K. Jahnke,   T. Kitching,"
+    },
+    {
+      "section": "F.   Pasian,   W.   J.   Percival,   M.   Sauvage,   M.   Scodeg-",
+      "text": "gio,   S.   Wachter,   A.   Zacchei,   N.   Aghanim,   A.   Amara,"
+    },
+    {
+      "section": "T.   Auphan,   N.   Auricchio,   S.   Awan,   A.   Balestra,   R.   Ben-",
+      "text": "der,   C.   Bodendorf,   D.   Bonino,   E.   Branchini,   S.   Brau-\nNogue,   M.   Brescia,   G.   P.   Candini,   V.   Capobianco,"
+    },
+    {
+      "section": "Y.   Copin,   L.   Corcione,   A.   Costille,   F.   Courbin,   H.   De-",
+      "text": "gaudenzi,   M.   Douspis,   F.   Dubath,   C.   A.   J.   Duncan,"
+    },
+    {
+      "section": "S.   Dusini,   S.   Farrens,   S.   Ferriol,   P.   Fosalba,   N.   Four-",
+      "text": "manoit,   M.   Frailis,   E.   Franceschi,   P.   Franzetti,   M.   Fu-\nmana,   B.   Gillis,   C.   Giocoli,   A.   Grazian,   F.   Grupp,"
+    },
+    {
+      "section": "S.   V.   H.   Haugan,   W.   Holmes,   F.   Hormuth,   P.   Hude-",
+      "text": "lot,   S.   Kermiche,   A.   Kiessling,   M.   Kilbinger,   R.   Koh-\nley,   B.   Kubik,   M.   K¨ummel,   M.   Kunz,   H.   Kurki-Suonio,"
+    },
+    {
+      "section": "M.   Moresco,   B.   Morin,   L.   Moscardini,   E.   Munari,   R.   C.",
+      "text": "Nichol,   C.   Padilla,   S.   Paltani,   J.   Peacock,   K.   Pedersen,"
+    },
+    {
+      "section": "F.   Raison,   R.   Rebolo,   J.   Rhodes,   H.-W.   Rix,   M.   Ron-",
+      "text": "carelli,   E.   Rossetti,   R.   Saglia,   P.   Schneider,   T.   Schrab-\nback,   A.   Secroun,   G.   Seidel,   S.   Serrano,   C.   Sirignano,"
+    },
+    {
+      "section": "G.   Sirri,   J.   Skottfelt,   L.   Stanco,   J.   L.   Starck,   P.   Tallada-",
+      "text": "Cresp´ı,   D.   Tavagnacco,   A.   N.   Taylor,   H.   I.   Teplitz,"
+    },
+    {
+      "section": "R.   Toledo-Moreo,   F.   Torradeflot,   M.   Trifoglio,   E.   A.",
+      "text": "Valentijn,   L.   Valenziano,   G.   A.   V.   Kleijn,   Y.   Wang,"
+    },
+    {
+      "section": "J.   Zoubian,   S.   Andreon,   M.   Baldi,   S.   Bardelli,   A.   Bou-",
+      "text": "caud,   S.   Camera,   G.   Fabbian,   R.   Farinelli,   J.   Graci´a-\nCarpio,   D.   Maino,   E.   Medinaceli,   S.   Mei,   C.   Neiss-\nner,   G.   Polenta,   A.   Renzi,   E.   Romelli,   C.   Rosset,"
+    },
+    {
+      "section": "F.   Sureau,   M.   Tenti,   T.   Vassallo,   E.   Zucca,   C.   Bac-",
+      "text": "cigalupi,   A.   Balaguera-Antol´ınez,   P.   Battaglia,   A.   Bi-\nviano,   S.   Borgani,   E.   Bozzo,   R.   Cabanac,   A.   Cappi,\n21"
+    },
+    {
+      "section": "H.   M.   Courtois,   J.   Cuby,   S.   de   la   Torre,   S.   Desai,   D.   D.",
+      "text": "Ferdinando,   H.   Dole,   M.   Fabricius,   M.   Farina,   P.   G.\nFerreira,   F.   Finelli,   P.   Flose-Reimberg,   S.   Fotopoulou,"
+    },
+    {
+      "section": "S.   Galeotta,   K.   Ganga,   G.   Gozaliasl,   I.   M.   Hook,   E.   Kei-",
+      "text": "hanen,   C.   C.   Kirkpatrick,   P.   Liebing,   V.   Lindholm,"
+    },
+    {
+      "section": "G.   Mainetti,   M.   Martinelli,   N.   Martinet,   M.   Maturi,",
+      "text": "H. J. McCracken, R. B. Metcalf, G. Morgante, J. Nightin-\ngale,   A.   Nucita,   L.   Patrizii,   D.   Potter,   G.   Riccio,   A.   G.\nS´anchez, D. Sapone, J. A. Schewtschenko, M. Schultheis,\nV. Scottez, R. Teyssier, I. Tutusaus, J. Valiviita, M. Viel,"
+    },
+    {
+      "section": "A112   (2022),   arXiv:2108.01201   [astro-ph].",
+      "text": "[4]   J.   Yao,   H.   Shan,   R.   Li,   Y.   Xu,   D.   Fan,   D.   Liu,   P.   Zhang,\nY. Yu, C. Wei, B. Hu, N. Li, Z. Fan, H. Xu, and W. Guo,\nMon.   Not.   R.   Astron.   Soc.   527 ,   5206   (2023).\n[5]   C.   Collaboration,   Y.   Gong,   H.   Miao,   H.   Zhan,   Z.-Y.   Li,"
+    },
+    {
+      "section": "Z.   Zheng,   L.   Hao,   J.   Dou,   Y.   Ao,   Z.   Lin,   K.   Zhang,",
+      "text": "W. Wang, G. Sun, R. Li, G. Li, Y. Xu, X. Li, S. Li, P. Wu,\nJ. Zhang, B. Wang, J. Bai, Y.-F. Cai, Z. Cai, K. C. Chan,\nJ. Chang,   X. Chen,   X. Chen,   Y. Chen,   Y. Chen,   W. Cui,\nP. Du, W. Duan, J. Fan, L. Fan, Z. Fan, Z. Fan, T. Fang,"
+    },
+    {
+      "section": "X.   Kong,   C.   Li,   D.   Li,   J.   Li,   N.   Li,   Y.   A.   Li,   S.   Liao,",
+      "text": "W. Lin, F. Liu, J. Liu, X. Liu, R. Mao, S. Mao, X. Meng,"
+    },
+    {
+      "section": "Introduction",
+      "text": "(csst)   (2025),   arXiv:2507.04618   [astro-ph].\n[6]   R.   Mandelbaum,   Annu.   Rev.   Astron.   Astrophys.   56 ,   393\n(2018),   arXiv:1710.03235   [astro-ph.CO].\n[7]   M.   Bartelmann   and   P.   Schneider,   Physics   Reports   340 ,\n291   (2001),   astro-ph/9912508.\n[8]   N.   Kaiser   and   G.   Squires,   Astrophys.   J.   404 ,   441   (1993).\n[9]   O.   Lahav,   K.   B.   Fisher,   Y.   Hoffman,   C.   A.   Scharf,   and"
+    },
+    {
+      "section": "S.   Zaroubi,   Astrophys.   J.   423 ,   L93   (1994).",
+      "text": "[10]   Y.   Shi,   P.   Zhang,   Z.   Sun,   and   Y.   Wang,   Phys.   Rev.   D"
+    },
+    {
+      "section": ",   123530   (2024),   arXiv:2311.00316   [astro-ph].",
+      "text": "[11]   Y.   Shi,   P.   Zhang,   F.   Deng,   S.   Zhou,   H.   Cai,   J.   Yao,   and"
+    },
+    {
+      "section": "Z.   Sun,   J.   Cosmol.   Astropart.   Phys.   2025   (7),   38.",
+      "text": "[12]   A.   Leonard,   F.   Lanusse,   and   J.-L.   Starck,   Mon.   Not.   R.\nAstron.   Soc.   440 ,   1281   (2014).\n[13]   M.   A.   Price,   J.   D.   McEwen,   X.   Cai,   T.   D.   Kitching,"
+    },
+    {
+      "section": "C.   G.   R.   Wallis,   and   (for   the   LSST   Dark   Energy   Sci-",
+      "text": "ence Collaboration), Mon. Not. R. Astron. Soc.  506 , 3678\n(2021).\n[14]   J.   L.   Starck,   K.   E.   Themelis,   N.   Jeffrey,   A.   Peel,\nand   F.   Lanusse,   Astron.   Astrophys.   649 ,   A99   (2021),\narXiv:2102.04127.\n[15]   N.   Jeffrey,   F.   Lanusse,   O.   Lahav,   and   J.   L.   Starck,   Mon.\nNot. R. Astron. Soc.  492 , 5023 (2020), arXiv:1908.00543.\n[16]   N.   Grewal,   J.   Zuntz,   and   T.   Tr¨oster,   Open   J.   Astrophys."
+    },
+    {
+      "section": ", 10.33232/001c.120394 (2024), arXiv:2402.13912 [astro-",
+      "text": "ph].\n[17]   M. Shirasaki, K. Moriwaki, T. Oogi, N. Yoshida, S. Ikeda,\nand   T.   Nishimichi,   Mon.   Not.   R.   Astron.   Soc.   504 ,   1825\n(2021),   arXiv:1911.12890   [astro-ph].\n[18]   B.   Remy,   F.   Lanusse,   N.   Jeffrey,   J.   Liu,   J.-L.   Starck,"
+    },
+    {
+      "section": "A51   (2023),   arXiv:2201.05561   [astro-ph].",
+      "text": "[19]   N.   Perraudin,   M.   Defferrard,   T.   Kacprzak,   and   R.   Sgier,\nAstron.   Comput.   27 ,   130   (2019),   arXiv:1810.12186.\n[20]   O.   Carlsson,   J.   E.   Gerken,   H.   Linander,   H.   Spieß,\nF. Ohlsson, C. Petersson, and D. Persson, in 2024   CVPR\n( { IEEE } ,   2024)   pp.   6067–6077,   arXiv:2307.07313   [cs].\n[21]   K.   He,   X.   Chen,   S.   Xie,   Y.   Li,   P.   Dollar,   and   R.   Gir-\nshick,   in   2022   CVPR   ( { IEEE } ,   2022)   pp.   15979–15988,\narXiv:2111.06377v1.\n[22]   J.   Devlin,   M.- } .   Chang,   K.   Lee,   and   K.   Toutanova,   in\n2019   NAACL   (Association   for   Computational   Linguis-\ntics,   Minneapolis,   Minnesota,   2019)   pp.   4171–4186.\n[23]   J.   E.   Hu,   Y.   Shen,   P.   Wallis,   Z.   Allen-Zhu,   Y.   Li,"
+    },
+    {
+      "section": "S.",
+      "text": "Wang,\nand"
+    },
+    {
+      "section": "W.",
+      "text": "Chen,\nArXiv"
+    },
+    {
+      "section": "abs/2106.09685 ,",
+      "text": "10.48550/arXiv.2106.09685\n(2021),\narXiv:2106.09685\n[cs].\n[24]   N.   Jeffrey,"
+    },
+    {
+      "section": "M.   Gatti,",
+      "text": "† .   C.   Chang,"
+    },
+    {
+      "section": "D.   Zeurcher,   A.   Alarcon,   A.   Amon,   K.   Bechtol,   G.   M.",
+      "text": "Bernstein,   A.   Campos,   A.   C.   Rosell,   M.   Carrasco,"
+    },
+    {
+      "section": "J.   Derose,   C.   Doux,   A.   Drlica-Wagner,   K.   Eckert,   F.   El-",
+      "text": "sner,   J.   Elvin-Poole,   S.   Everett,   A.   Fert´e,   G.   Giannini,"
+    },
+    {
+      "section": "D.   Gruen,   R.   A.   Gruendl,   I.   Harrison,   W.   G.   Hart-",
+      "text": "ley,   K.   Herner,   E.   M.   Huff,   D.   Huterer,   N.   Kuropatkin,"
+    },
+    {
+      "section": "M.   Jarvis,   P.   F.   Leget,   N.   Maccrann,   J.   Mccullough,",
+      "text": "J. Muir,   J. Myles,   A. Navarro-Alsina,   S. Pandey,   J. Prat,"
+    },
+    {
+      "section": "C.   S´anchez,   L.   F.   Secco,   I.   Sevilla-Noarbe,   E.   Shel-",
+      "text": "don,   T.   Shin,   M.   A.   Troxel,   I.   Tutusaus,   T.   N.   Varga,"
+    },
+    {
+      "section": "B.   Yanny,   B.   Yin,   Y.   Zhang,   J.   Zuntz,   T.   M.   C.",
+      "text": "Abbott,   M.   Aguena,   S.   Allam,   F.   Andrade-Oliveira,"
+    },
+    {
+      "section": "M.   R.   Becker,   E.   Bertin,   S.   Bhargava,   D.   Brooks,   D.   L.",
+      "text": "Burke,   and   J.   Carretero,   J.   Gschwend   18 ,   9   (2021),\narXiv:2105.13539v2.\n[25]   C.   Heymans,   T.   Tr¨oster,   M.   Asgari,   C.   Blake,   H.   Hilde-\nbrandt,   B.   Joachimi,   K.   Kuijken,   C.-A.   Lin,   A.   G.\nS´anchez,   J.   L.   van   den   Busch,   A.   H.   Wright,   A.   Amon,"
+    },
+    {
+      "section": "C.   Lidman,   L.   Miller,   N.   R.   Napolitano,   D.   Parkin-",
+      "text": "son,   P.   Schneider,   H.   Shan,   E.   Valentijn,   G.   V.   Kleijn,\nand   C.   Wolf,   Astron.   Astrophys.   646 ,   A140   (2021),\narXiv:2007.15632   [astro-ph].\n[26]   A.   Dey,   D.   J.   Schlegel,   D.   Lang,   R.   Blum,   K.   Burleigh,"
+    },
+    {
+      "section": "S.   Juneau,   M.   Landriau,   M.   Levi,   I.   McGreer,   A.   Meis-",
+      "text": "ner,   A.   D.   Myers,   J.   Moustakas,   P.   Nugent,   A.   Patej,"
+    },
+    {
+      "section": "C.   Y`eche,   H.   Zou,   X.   Zhou,   B.   Abareshi,   T.   M.   C.   Ab-",
+      "text": "bott, B. Abolfathi, C. Aguilera, S. Alam, L. Allen, A. Al-\nvarez,   J.   Annis,   B.   Ansarinejad,   M.   Aubert,   J.   Beechert,"
+    },
+    {
+      "section": "A.   S.   Bolton,   C.   Brice˜no,   E.   J.   Buckley-Geer,   K.   But-",
+      "text": "ler,   A.   Calamida,   R.   G.   Carlberg,   P.   Carter,   R.   Casas,"
+    },
+    {
+      "section": "T.   Delubac,   K.   DeVries,   S.   Dey,   G.   Dhungana,   M.   Dick-",
+      "text": "inson,   Z.   Ding,   J.   B.   Donaldson,   Y.   Duan,   C.   J.   Duck-\nworth,   S. Eftekharzadeh,   D. J. Eisenstein,   T. Etourneau,\n22\nP. A. Fagrelius, J. Farihi, M. Fitzpatrick, A. Font-Ribera,"
+    },
+    {
+      "section": "J.   Guy,   D.   Harmer,   M.   Hernandez,   K.   Honscheid,   L.   W.",
+      "text": "Huang,   D.   J.   James,   B.   T.   Jannuzi,   L.   Jiang,   R.   Joyce,\nA. Karcher, S. Karkar, R. Kehoe, J.-P. Kneib, A. Kueter-\nYoung,   T.-W.   Lan,   T.   R.   Lauer,   L.   L.   Guillou,   A.   L.\nVan   Suu,   J.   H.   Lee,   M.   Lesser,   L.   P.   Levasseur,   T.   S.\nLi,   J.   L.   Mann,   R.   Marshall,   C.   E.   Mart´ınez-V´azquez,\nP. Martini, H. Du Mas Des Bourboux, S. McManus, T. G.\nMeier,   B.   M´enard,   N.   Metcalfe,   A.   Mu˜noz-Guti´errez,"
+    },
+    {
+      "section": "B.   Nord,   D.   J.   Norman,   K.   A.   G.   Olsen,   A.   Paat,",
+      "text": "N. Palanque-Delabrouille,   X. Peng,   C. L. Poppett,   M. R.\nPoremba,   A.   Prakash,   D.   Rabinowitz,   A.   Raichoor,\nM. Rezaie, A. N. Robertson, N. A. Roe, A. J. Ross, N. P.\nRoss,   G.   Rudnick,   S.   Gaines,   A.   Saha,   F.   J.   S´anchez,"
+    },
+    {
+      "section": "E.   Savary,   H.   Schweiker,   A.   Scott,   H.-J.   Seo,   H.   Shan,",
+      "text": "D. R. Silva, Z. Slepian, C. Soto, D. Sprayberry, R. Staten,"
+    },
+    {
+      "section": "C.   M.   Stillman,   R.   J.   Stupak,   D.   L.   Summers,   S.   S.   Tie,",
+      "text": "H. Tirado,   M. Vargas-Maga˜na,   A. K. Vivas,   R. H. Wech-\nsler,   D.   Williams,   J.   Yang,   Q.   Yang,   T.   Yapici,   D.   Zarit-\nsky,   A.   Zenteno,   K.   Zhang,   T.   Zhang,   R.   Zhou,   and"
+    },
+    {
+      "section": "Z.   Zhou,   Astron.   J.   157 ,   168   (2019).",
+      "text": "[27]   Planck   Collaboration,   Y.   Akrami,   F.   Arroja,   M.   Ash-\ndown,   J.   Aumont,   C.   Baccigalupi,   M.   Ballardini,   A.   J.\nBanday,   R.   B.   Barreiro,   N.   Bartolo,   S.   Basak,   R.   Battye,"
+    },
+    {
+      "section": "F.   Boulanger,   M.   Bucher,   C.   Burigana,   R.   C.   But-",
+      "text": "ler,   E.   Calabrese,   J.   F.   Cardoso,   J.   Carron,   B.   Cas-\naponsa,   A.   Challinor,   H.   C.   Chiang,   L.   P.   L.   Colombo,"
+    },
+    {
+      "section": "C.   Combet,   D.   Contreras,   B.   P.   Crill,   F.   Cuttaia,   P.   de",
+      "text": "Bernardis,   G.   de   Zotti,   J.   Delabrouille,   J.   M.   Delouis,\nF. X. D´esert, E. Di Valentino, C. Dickinson, J. M. Diego,"
+    },
+    {
+      "section": "E.   Falgarone,   Y.   Fantaye,   J.   Fergusson,   R.   Fernandez-",
+      "text": "Cobos,   F. Finelli,   F.   Forastieri,   M.   Frailis,   E. Franceschi,\nA. Frolov, S. Galeotta, S. Galli, K. Ganga, R. T. G´enova-\nSantos, M. Gerbino, T. Ghosh, J. Gonz´alez-Nuevo, K. M.\nG´orski,   S.   Gratton,   A.   Gruppuso,   J.   E.   Gudmunds-\nson,   J.   Hamann,   W.   Handley,   F.   K.   Hansen,   G.   Helou,"
+    },
+    {
+      "section": "D.   Herranz,   E.   Hivon,   Z.   Huang,   A.   H.   Jaffe,   W.   C.",
+      "text": "Jones,   A.   Karakci,   E.   Keih¨anen,   R.   Keskitalo,   K.   Ki-\niveri,   J.   Kim,   T.   S.   Kisner,   L.   Knox,   N.   Krachmal-\nnicoff,   M.   Kunz,   H.   Kurki-Suonio,   G.   Lagache,   J.   M.\nLamarre,   M.   Langer,   A.   Lasenby,   M.   Lattanzi,   C.   R.\nLawrence,   M.   L.   Jeune,   J.   P.   Leahy,   J.   Lesgourgues,"
+    },
+    {
+      "section": "A.   Mangilli,   A.   Marcos-Caballero,   M.   Maris,   P.   G.   Mar-",
+      "text": "tin,   E.   Mart´ınez-Gonz´alez,   S.   Matarrese,   N.   Mauri,   J.   D.\nMcEwen, P. D. Meerburg, P. R. Meinhold, A. Melchiorri,"
+    },
+    {
+      "section": "A.   Mennella,   M.   Migliaccio,   M.   Millea,   S.   Mitra,   M.   A.",
+      "text": "Miville-Deschˆenes,   D.   Molinari,   A.   Moneti,   L.   Montier,"
+    },
+    {
+      "section": "P.   Natoli,   H.   U.   Nørgaard-Nielsen,   C.   A.   Oxborrow,",
+      "text": "L. Pagano, D. Paoletti, B. Partridge, G. Patanchon, T. J.\nPearson,   M.   Peel,   H.   V.   Peiris,   F.   Perrotta,   V.   Pet-\ntorino, F. Piacentini, L. Polastri, G. Polenta, J. L. Puget,"
+    },
+    {
+      "section": "A.   Zacchei,   and   A.   Zonca,   Astron.   Astrophys.   641 ,   A1",
+      "text": "(2018),   arXiv:1807.06205.\n[28]   P.   G.   Castro,   A.   F.   Heavens,   and   T.   D.   Kitching,   Phys.\nRev.   D   72 ,   023516   (2005).\n[29]   M.   Bartelmann,   Cluster   mass   estimates   from   weak   lens-\ning   (1994).\n[30]   R.   Massey,   J.   Rhodes,   R.   Ellis,   N.   Scoville,   A.   Leau-\nthaud,   A.   Finoguenov,   P.   Capak,   D.   Bacon,   H.   Aus-\nsel,"
+    },
+    {
+      "section": "J.-P.",
+      "text": "Kneib,"
+    },
+    {
+      "section": "A.",
+      "text": "Koekemoer,"
+    },
+    {
+      "section": "H.",
+      "text": "McCracken,"
+    },
+    {
+      "section": "B.   Mobasher,   S.   Pires,   A.   Refregier,   S.   Sasaki,   J.-L.",
+      "text": "Starck,   Y.   Taniguchi,   A.   Taylor,   and   J.   Taylor,   Nature"
+    },
+    {
+      "section": ",   286   (2007).",
+      "text": "[31]   N. Wiener, Extrapolation,   Interpolation,   and   Smoothing   of   Stationar\nVol.   7   (MIT,   1949).\n[32]   S.   Zaroubi,   Y.   Hoffman,   K.   B.   Fisher,   and   O.   Lahav,\nAstrophys.   J.   449 ,   446   (1995),   arXiv:astro-ph/9410080.\n[33]   N. Jeffrey, A. F. Heavens, and P. D. Fortio, Astron. Com-\nput.   25 ,   230   (2018),   arXiv:1810.02821   [astro-ph.IM].\n[34]   D.   K.   Ramanah,   G.   Lavaux,   and   B.   D.   Wandelt,   Mon.\nNot.   R.   Astron.   Soc.   490 ,   947   (2019),   arXiv:1906.10704\n[astro-ph].\n[35]   A.   Vaswani,"
+    },
+    {
+      "section": "J.   Uszkoreit,",
+      "text": "L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, Neu-\nral Inf. Process. Syst. 10.48550/arXiv.1706.03762 (2017),\narXiv:1706.03762   [cs].\n[36]   A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn,"
+    },
+    {
+      "section": "X.   Zhai,   T.   Unterthiner,   M.   Dehghani,   M.   Minderer,",
+      "text": "G. Heigold, S. Gelly, J. Uszkoreit, and N. Houlsby, An im-\nage   is   worth   16x16   words:   Transformers   for   image   recog-\nnition   at   scale   (2021),   arXiv:2010.11929.\n[37]   S.   Pires,   V.   Vandenbussche,   V.   Kansal,   R.   Bender,"
+    },
+    {
+      "section": "F.   Dubath,   P.   Fosalba,   M.   Frailis,   E.   Franceschi,   M.   Fu-",
+      "text": "mana,   F.   Grupp,   F.   Hormuth,   S.   Kermiche,   M.   Knaben-\nhans,   R.   Kohley,   B.   Kubik,   M.   Kunz,   S.   Ligori,   P.   B.\nLilje,   I.   Lloro,   E.   Maiorano,   O.   Marggraf,   R.   Massey,"
+    },
+    {
+      "section": "G.   Meylan,   C.   Padilla,   S.   Paltani,   F.   Pasian,   M.   Poncet,",
+      "text": "D. Potter, F. Raison, J. Rhodes, M. Roncarelli, R. Saglia,"
+    },
+    {
+      "section": "P.   Schneider,   A.   Secroun,   S.   Serrano,   J.   Stadel,   P.   Tal-",
+      "text": "lada   Cresp´ı,   I.   Tereno,   R.   Toledo-Moreo,   and   Y.   Wang,"
+    },
+    {
+      "section": "A&A   638 ,   A141   (2020).",
+      "text": "[38]   H.   Hildebrandt,   M.   Viola,   C.   Heymans,   S.   Joudaki,"
+    },
+    {
+      "section": "G.   Ver-",
+      "text": "does   Kleijn,   A.   Amon,   A.   Choi,   G.   Covone,   J.   T.   A.   de\nJong,   A. Dvornik,   I. Fenech Conti,   A. Grado,   J. Harnois-\nD´eraps, R. Herbonnet, H. Hoekstra, F. K¨ohlinger, J. Mc-\nFarland,   A.   Mead,   J.   Merten,   N.   Napolitano,   J.   A.   Pea-\ncock,   M.   Radovich,   P.   Schneider,   P.   Simon,   E.   A.   Valen-\ntijn, J. L. van den Busch, E. van Uitert, and L. Van Waer-\nbeke,   Mon.   Not.   R.   Astron.   Soc.   465 ,   1454   (2017),\narXiv:1606.05338.\n[39]   N.   E.   Chisari,   D.   Alonso,   E.   Krause,   C.   D.   Leonard,"
+    },
+    {
+      "section": "P.   Bull,   J.   Neveu,   A.   Villarreal,   S.   Singh,   T.   McClin-",
+      "text": "tock,   J.   Ellison,   Z.   Du,   J.   Zuntz,   A.   Mead,   S.   Joudaki,\n23"
+    },
+    {
+      "section": "M.   Ishak,   R.   Hlozek,   J.   Blazek,   J.-E.   Campagne,   H.   Al-",
+      "text": "moubayyed, T. Eifler, M. Kirby, D. Kirkby, S. Plaszczyn-\nski,   A.   Slosar,   M.   Vrastil,   E.   L.   Wagoner,   and   (LSST\nDark Energy Science Collaboration), ApJS  242 , 2 (2019),\narXiv:1812.05995   [astro-ph].\n[40]   C.   Chang,   M.   Jarvis,   B.   Jain,   S.   M.   Kahn,   D.   Kirkby,\nA. Connolly, S. Krughoff, E.-H. Peng, and J. R. Peterson,\nMon.   Not.   R.   Astron.   Soc.   434 ,   2121   (2013).\n[41]   T.   Schrabback,   M.   Schirmer,   R.   F.   J.   Van   Der   Burg,"
+    },
+    {
+      "section": "T.   Eifler,   T.   Erben,   M.   D.   Gladders,   B.   Hern´andez-",
+      "text": "Mart´ın,   H.   Hildebrandt,   A.   Hoag,   D.   Klaes,   A.   Von\nDer   Linden,   D.   Marchesini,   A.   Muzzin,   K.   Sharon,   and"
+    },
+    {
+      "section": "M.   Stefanon,   Astron.   Astrophys.   610 ,   A85   (2018).",
+      "text": "[42]   P.   Fiedorowicz,   E.   Rozo,   S.   S.   Boruah,   C.   Chang,   and"
+    },
+    {
+      "section": "M.   Gatti,   Mon.   Not.   R.   Astron.   Soc.   512 ,   73   (2022),",
+      "text": "arXiv:2105.14699   [astro-ph].\n[43]   R. Shuttleworth, J. Andreas, A. Torralba, and P. Sharma,\nCorr"
+    },
+    {
+      "section": "/ARXIV.2410.21228",
+      "text": "(2024),   arXiv:2410.21228   [cs].\n[44]   A.   Defazio,"
+    },
+    {
+      "section": "H.   Mehta,   and   A.   Cutkosky,   in   NeurIPS   2024   (arXiv,",
+      "text": "2024)   arXiv:2405.15682   [cs].\n[45]   D."
+    },
+    {
+      "section": "P.",
+      "text": "Kingma\nand"
+    },
+    {
+      "section": "J.",
+      "text": "Ba,\nin\nProc.   3rd   Int.   Conf.   Learn.   Represent.   (2015).\n[46]   D.-K.   Nguyen,   M.   Assran,   U.   Jain,   M.   R.   Oswald,"
+    },
+    {
+      "section": "/ARXIV.2406.09415   (2024),   arXiv:2406.09415",
+      "text": "[cs].\n[47]   R. Cipolla, Y. Gal, and A. Kendall, in 2018   CVPR (Com-\nputer   Vision   Foundation   /   { IEEE }   Computer   Society,\nSalt   Lake   City,   UT,   USA,   2018)   pp.   7482–7491.\n[48]   K.   D.   Stephen   and   A.   Kazemi,   Geophysical   Prospecting"
+    },
+    {
+      "section": ",   1009   (2014).",
+      "text": "[49]   B. Mawdsley,   D. Bacon,   C. Chang,   P. Melchior,   E. Rozo,"
+    },
+    {
+      "section": "W.   G.   Hartley,   B.   Hoyle,   S.   Samuroff,   E.   Sheldon,   M.   A.",
+      "text": "Troxel,   J.   Zuntz,   T.   M.   C.   Abbott,   J.   Annis,   E.   Bertin,"
+    },
+    {
+      "section": "P.   Doel,   A.   E.   Evrard,   B.   Flaugher,   P.   Fosalba,   J.   Frie-",
+      "text": "man,   J.   Garc´ıa-Bellido,   D.   W.   Gerdes,   R.   A.   Gruendl,"
+    },
+    {
+      "section": "J.   Gschwend,   G.   Gutierrez,   D.   L.   Hollowood,   K.   Hon-",
+      "text": "scheid,   D.   J.   James,   M.   Jarvis,   T.   Jeltema,   K.   Kuehn,"
+    },
+    {
+      "section": "N.   Kuropatkin,   M.   Lima,   M.   A.   G.   Maia,   J.   L.   Mar-",
+      "text": "shall,   R. Miquel,   A. A. Plazas,   A. Roodman,   E. Sanchez,"
+    },
+    {
+      "section": "(DES   Collaboration),   Mon.   Not.   R.   Astron.   Soc.   493 ,",
+      "text": "5662   (2020).\n[50]   D.   Alonso,   J.   Sanchez,   and   A.   Slosar,   Mon.   Not.   R.   As-\ntron.   Soc.   484 ,   4127   (2019).\n[51]   C.   Chang,   A.   Pujol,   B.   Mawdsley,   D.   Bacon,   J.   Elvin-\nPoole,   P.   Melchior,   A.   Kov´acs,   B.   Jain,   B.   Leistedt,"
+    },
+    {
+      "section": "M.   R.   Becker,   A.   Benoit-L´evy,   G.   M.   Bernstein,   C.   Bon-",
+      "text": "nett,   M.   T.   Busha,   A.   C.   Rosell,   F.   J.   Castander,"
+    },
+    {
+      "section": "E.   Gaztanaga,   D.   Gruen,   J.   Gschwend,   W.   G.   Hartley,",
+      "text": "B. Hoyle,   E. M. Huff,   M. Jarvis,   N. Jeffrey,   T. Kacprzak,"
+    },
+    {
+      "section": "H.   Lin,   N.   MacCrann,   M.   A.   G.   Maia,   R.   L.   C.   Ogando,",
+      "text": "J. Prat, M. M. Rau, R. P. Rollins, A. Roodman, E. Rozo,"
+    },
+    {
+      "section": "E.   Buckley-Geer,   D.   L.   Burke,   M.   C.   Kind,   J.   Carretero,",
+      "text": "M. Crocce, C. E. Cunha, C. B. D’Andrea, S. Desai, H. T.\nDiehl,   J.   P.   Dietrich,   P.   Doel,   J.   Estrada,   A.   F.   Neto,\nE. Fernandez, B. Flaugher, J. Frieman, J. Garc´ıa-Bellido,"
+    },
+    {
+      "section": "R.   Miquel,   J.   J.   Mohr,   E.   Neilsen,   R.   C.   Nichol,   D.   Pe-",
+      "text": "travick, A. A. Plazas, A. K. Romer, M. Sako, E. Sanchez,"
+    },
+    {
+      "section": "Y.   Zhang,   Mon.   Not.   R.   Astron.   Soc.   475 ,   3165   (2018),",
+      "text": "arXiv:1708.01535   [astro-ph.CO].\n[52]   C. R. Harris, K. J. Millman, S. J. Van Der Walt, R. Gom-\nmers,   P.   Virtanen,   D.   Cournapeau,   E.   Wieser,   J.   Tay-\nlor,   S.   Berg,   N.   J.   Smith,   R.   Kern,   M.   Picus,   S.   Hoyer,\nM. H. Van Kerkwijk, M. Brett, A. Haldane, J. F. Del R´ıo,"
+    },
+    {
+      "section": "M.   Wiebe,   P.   Peterson,   P.   G´erard-Marchant,   K.   Shep-",
+      "text": "pard,   T.   Reddy,   W.   Weckesser,   H.   Abbasi,   C.   Gohlke,\nand   T.   E.   Oliphant,   Nature   585 ,   357   (2020).\n[53]   P.   Virtanen,   R.   Gommers,   T.   E.   Oliphant,   M.   Haber-\nland,   T.   Reddy,   D.   Cournapeau,   E.   Burovski,   P.   Pe-\nterson,   W.   Weckesser,   J.   Bright,   S.   J.   Van   Der   Walt,\nM. Brett, J. Wilson, K. J. Millman, N. Mayorov, A. R. J.\nNelson,   E.   Jones,   R.   Kern,   E.   Larson,   C.   J.   Carey,   ˙ I.   Po-\nlat,   Y.   Feng,   E.   W.   Moore,   J.   VanderPlas,   D.   Laxalde,"
+    },
+    {
+      "section": "J.   Perktold,   R.   Cimrman,   I.   Henriksen,   E.   A.   Quin-",
+      "text": "tero,   C.   R.   Harris,   A.   M.   Archibald,   A.   H.   Ribeiro,"
+    },
+    {
+      "section": "A.   Kloeckner,   A.   Scopatz,   A.   Lee,   A.   Rokem,   C.   N.",
+      "text": "Woods, C. Fulton, C. Masson, C. H¨aggstr¨om, C. Fitzger-\nald,   D.   A.   Nicholson,   D.   R.   Hagen,   D.   V.   Pasechnik,"
+    },
+    {
+      "section": "F.   Wilhelm,   G.   Young,   G.   A.   Price,   G.-L.   Ingold,   G.   E.",
+      "text": "Allen,   G.   R.   Lee,   H.   Audren,   I.   Probst,   J.   P.   Diet-\nrich,   J.   Silterra,   J.   T.   Webber,   J.   Slaviˇc,   J.   Noth-\nman,   J.   Buchner,   J.   Kulick,   J.   L.   Sch¨onberger,   J.   V.\nDe   Miranda   Cardoso,   J.   Reimer,   J.   Harrington,   J.   L.   C.\nRodr´ıguez,   J.   Nunez-Iglesias,   J.   Kuczynski,   K.   Tritz,"
+    },
+    {
+      "section": "M.   Thoma,   M.   Newville,   M.   K¨ummerer,   M.   Boling-",
+      "text": "broke,   M.   Tartre,   M.   Pak,   N.   J.   Smith,   N.   Nowaczyk,"
+    },
+    {
+      "section": "N.   Shebanov,   O.   Pavlyk,   P.   A.   Brodtkorb,   P.   Lee,   R.   T.",
+      "text": "McGibbon,   R.   Feldbauer,   S.   Lewis,   S.   Tygier,   S.   Sievert,"
+    },
+    {
+      "section": ",   261   (2020).",
+      "text": "[54]   A.   Zonca,   L.   Singer,   D.   Lenz,   M.   Reinecke,   C.   Rosset,"
+    },
+    {
+      "section": "E.   Hivon,   and   K.   Gorski,   JOSS   4 ,   1298   (2019).",
+      "text": "[55]   J.   Ansel,   E.   Yang,   H.   He,   N.   Gimelshein,   A.   Jain,\nM. Voznesensky, B. Bao, P. Bell, D. Berard, E. Burovski,\nG. Chauhan,   A. Chourdia,   W. Constable,   A.   Desmaison,"
+    },
+    {
+      "section": "B.   Hirsh,   S.   Huang,   K.   Kalambarkar,   L.   Kirsch,   M.   La-",
+      "text": "24\nzos,   M.   Lezcano,   Y.   Liang,   J.   Liang,   Y.   Lu,   C.   K.   Luk,"
+    },
+    {
+      "section": "X.   Zhao,   E.   Wang,   K.   Zhou,   R.   Zou,   X.   Wang,   A.   Math-",
+      "text": "ews,   W.   Wen,   G.   Chanan,   P.   Wu,   and   S.   Chintala,   Proc.\n29th   ACM   Int.   Conf.   Archit.   Support   Program.   Lang.\nOper.   Syst.   Vol.   2   ,   929   (2024).\n[56]   T.   Wolf,   L.   Debut,   V.   Sanh,   J.   Chaumond,   C.   De-\nlangue,"
+    },
+    {
+      "section": "A.",
+      "text": "Moi,"
+    },
+    {
+      "section": "P.",
+      "text": "Cistac,"
+    },
+    {
+      "section": "T.",
+      "text": "Rault,"
+    },
+    {
+      "section": "R.",
+      "text": "Louf,"
+    },
+    {
+      "section": "C.",
+      "text": "Ma,"
+    },
+    {
+      "section": "Y.",
+      "text": "Jernite,"
+    },
+    {
+      "section": "J.",
+      "text": "Plu,"
+    },
+    {
+      "section": "C.",
+      "text": "Xu,"
+    },
+    {
+      "section": "L.",
+      "text": "Scao,"
+    },
+    {
+      "section": "S.",
+      "text": "Gugger,"
+    },
+    {
+      "section": "M.",
+      "text": "Drame,"
+    },
+    {
+      "section": "Q.",
+      "text": "Lhoest,\nand"
+    },
+    {
+      "section": "M.",
+      "text": "Rush, Corr  abs/1910.3771 , 10.48550/arXiv.1910.03771\n(2019),   arXiv:1910.03771   [cs].\n[57]   https://github.com/lalalabox/healformers.\n[58]   J.   Gehring,   M.   Auli,   D.   Grangier,   D.   Yarats,   and   Y.   N.\nDauphin,   Convolutional   sequence   to   sequence   learning\n(2017),   arXiv:1705.03122   [cs]."
+    }
+  ]
+}

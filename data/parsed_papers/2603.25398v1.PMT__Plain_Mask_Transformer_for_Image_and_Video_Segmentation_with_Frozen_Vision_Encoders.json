@@ -1,0 +1,706 @@
+{
+  "paper_id": "2603.25398v1.PMT__Plain_Mask_Transformer_for_Image_and_Video_Segmentation_with_Frozen_Vision_Encoders",
+  "title": "PMT: Plain Mask Transformer for Image and Video Segmentation with Frozen Vision Encoders",
+  "sections": [
+    {
+      "section": "Abstract",
+      "text": "Vision Foundation Models (VFMs) pre-trained at scale en-\nable   a   single   frozen   encoder   to   serve   multiple   downstream\ntasks   simultaneously.\nRecent   VFM-based   encoder-only\nmodels   for   image   and   video   segmentation,   such   as   EoMT\nand   VidEoMT,   achieve   competitive   accuracy   with   remark-\nably   low   latency,   yet   they   require   finetuning   the   encoder,\nsacrificing the multi-task encoder sharing that makes VFMs\npractically   attractive   for   large-scale   deployment.   To   rec-\noncile   encoder-only   simplicity   and   speed   with   frozen   VFM\nfeatures,   we   propose   the   Plain   Mask   Decoder   (PMD),   a\nfast Transformer-based segmentation decoder that operates\non   top   of   frozen   VFM   features.   The   resulting   model,   the\nPlain Mask Transformer (PMT), preserves the architectural\nsimplicity   and   low   latency   of   encoder-only   designs   while\nkeeping   the   encoder   representation   unchanged   and   share-\nable. The design seamlessly applies to both image and video\nsegmentation, inheriting the generality of the encoder-only\nframework.   On standard image segmentation benchmarks,\nPMT matches the frozen-encoder state of the art while run-\nning   up   to   ∼ 3 ×   faster.\nFor   video   segmentation,   it   even\nperforms   on   par   with   fully   finetuned   methods,   while   being\nup to  8 ×  faster than state-of-the-art frozen-encoder models.\nCode:   https://github.com/tue-mps/pmt ."
+    },
+    {
+      "section": "Introduction",
+      "text": "Vision   Foundation   Models   (VFMs),   pre-trained   at   scale\non   large   and   diverse   datasets,   have   established   the   Vision\nTransformer   (ViT)   [ 14 ]   as   the   dominant   encoder   in   mod-\nern   computer   vision.   The   DINO   family   [ 5 ,   39 ,   41 ]   exem-\nplifies   this   trend:   by   combining   the   ViT   architecture   with\nself-supervised objectives that promote dense and semanti-\ncally rich representations, these models achieve strong per-\nformance in a broad range of downstream tasks without any\ntask-specific design choices in the encoder itself.\nThe   representational   richness   of   VFMs   enables   a   radi-\ncal   rethinking   of   downstream   architectures.   For   instance,\nconsider the task of image segmentation, which requires an\n40\n80\n160\n320\n44\n46\n48\n50\n52\n54\n56\n58\n∼ 3 ×  faster\nFrames per second (FPS) [log scale]\nPanoptic Quality (PQ)\nViT-L\nViT-B\nViT-S\nViT-Adapter + Mask2Former"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "Figure 1.   ViT-Adapter + Mask2Former  vs . PMT (Ours).   PMT\nexhibits   a   better   trade-off   between   Panoptic   Quality   and   FPS\nacross different sizes of  frozen  DINOv3 [ 41 ] pre-trained ViTs [ 14 ].\nEvaluated on COCO  val2017  [ 25 ], see Tab.  4 .\nimage   to   be   divided   into   pixel-level   masks.   Until   recently,\nstate-of-the-art   ViT-based   image   segmentation   models   ap-\nplied   various   task-specific   components   on   top   of   the   ViT,\nsuch   as   a   convolutional   adapter   [ 9 ],   a   pixel   decoder,   and   a\nTransformer decoder [ 10 ,  11 ,  19 ].\nWhile this approach is effective, the Encoder-only Mask\nTransformer   (EoMT)   [ 20 ]   method   showed   that   these   task-\nspecific   components   are,   in   fact,   largely   unnecessary   in\ncombination   with   current   VFMs.   Specifically,   EoMT   con-\nsists   of   a   plain   ViT   whose   final   layers   are   injected   with   a\nset of learnable queries, which are then processed alongside\nthe patch tokens.   During this process, each query accumu-\nlates   the   information   needed   to   predict   a   binary   segmen-\ntation   mask   and   class   label,   allowing   it   to   yield   segmen-\ntation   predictions   with   competitive   accuracy   at   a   fraction\nof   the   latency.   The   encoder-only   framework   was   recently\nextended   to   the   video   domain,   with   VidEoMT   [ 38 ].   Fol-\nlowing   the   principles   of   EoMT,   this   model   replaces   task-\nspecific   tracking   modules   and   temporal   Transformer   lay-\ners with a lightweight query propagation mechanism along-\nside   the   ViT,   achieving   5 – 10 ×   faster   inference   over   prior\nart.   Crucially, the success of this encoder-only paradigm re-\nquires   sufficient   scale,   both   in   pre-training   data   and   model\nsize:   without   a   sufficiently   large   and   well-trained   encoder,\nremoving the specialized modules leads to a significant ac-\n1"
+    },
+    {
+      "section": "arXiv:2603.25398v1  [cs.CV]  26 Mar 2026",
+      "text": "curacy drop [ 20 ,  38 ].   Only at scale does the pre-trained en-\ncoder   alone   carry   the   representational   capacity   previously\ndistributed across many specialized modules, making those\ncomponents largely redundant.\nHowever,   both   EoMT   and   VidEoMT   require   finetuning\nthe entire encoder .   On the one hand, patch token represen-\ntations   must   be   updated   to   accommodate   the   segmentation\ntask,   requiring   full   finetuning   of   the   encoder.   More   crit-\nically,   because   queries   are   injected   into   the   self-attention\nlayers,   the   pre-trained   weights   must   adapt   to   incorporate\nthese new tokens. As we empirically verify, freezing the en-\ncoder   is   not   merely   suboptimal,   it   fundamentally   prevents\nthe   mechanism   from   working,   as   the   pre-trained   attention\nlayers have no notion of the injected queries.\nThe fact that EoMT and VidEoMT require finetuning the\nViT presents practical limitations.   Specifically, by updating\nthe   encoder   parameters   for   a   particular   segmentation   task\nand   dataset,   the   VFM   can   no   longer   be   used   for   any   other\ndownstream   task.   Each   task   and   dataset   require   a   separate\nViT with finetuned parameters. As a consequence, if predic-\ntions are needed for multiple tasks or class definitions dur-\ning deployment, one must either (a) maintain separate fine-\ntuned encoder-only models for each task, or (b) use a single\nfrozen VFM encoder with inefficient task-specific decoders\non top [ 41 ].   Clearly, both options are inefficient.\nTherefore,   in   this   work,   we   apply   the   philosophy   pi-\noneered   by   EoMT   to   the   setting   where   the   VFM   is   kept\nfrozen. Specifically, given a frozen ViT encoder, we explore\nhow   much   the   task-specific   decoders   for   image   and   video\nsegmentation can be simplified when the ViT encoder is suf-\nficiently large and pre-trained with large-scale data.   While\nmost   task-specific   modules   could   be   removed   without   ac-\ncuracy   drop   in   the   finetuned-encoder   setting   [ 20 ],   we   ob-\nserve   more   substantial   drops   in   combination   with   a   frozen\nencoder.   To   compensate   for   this   loss   in   accuracy   without\nintroducing substantial computational overhead, we present\nPlain Mask Transformer (PMT). PMT mimics the behavior\nof the last  L 2  encoder layers of EoMT and VidEoMT with a\nsmall Transformer decoder, called the Plain Mask Decoder\n(PMD). This PMD takes the learnable queries and features\nfrom   the   frozen   ViT   encoder,   and   processes   them   jointly\nthrough regular Transformer layers, just like the last  L 2  lay-\ners of EoMT. As this is a very lightweight module that only\nuses standard Transformer operations, this design preserves\nthe architectural simplicity and low latency of encoder-only\nmethods,   while   the   encoder   remains   frozen   and   shareable\nacross multiple downstream tasks.   Importantly, this design\nseamlessly   applies   to   both   image   and   video   segmentation,\ninheriting the generality of the encoder-only framework.\nThrough experiments, we find that PMT matches the ac-\ncuracy of state-of-the-art frozen-encoder models for image\nsegmentation   while   being   up   to   3 ×   faster.   Moreover,   for\nvideo segmentation, it can even compete or outperform  fully\nfinetuned   state-of-the-art   methods,   while   being   up   to   8 ×\nfaster than frozen-encoder baselines. Together, these results\ndemonstrate the effectiveness of PMT for image and video\nsegmentation.   Notably,   PMT   obtains   these   results   while\nkeeping   the   encoder   frozen,   making   it   directly   compatible\nwith   multi-task   deployment   where   a   single   shared   encoder\nmust serve multiple tasks simultaneously.\nIn summary, we make the following contributions.\n•   We identify and experimentally verify a fundamental lim-\nitation   of   encoder-only   segmentation   models:   their   ap-\nproach of injecting learnable queries into the ViT encoder\nis not compatible with keeping the encoder frozen.\n•   To   overcome   this   limitation,   we   propose   the   Plain   Mask\nDecoder   (PMD),   a   lightweight   decoder   that   operates\non   frozen   VFM   features,   reconciling   the   architectural\nsimplicity   and   speed   of   encoder-only   methods   with   the\nfrozen-encoder paradigm. We term the resulting approach\nthe Plain Mask Transformer (PMT).\n•   We find that PMT matches state-of-the-art frozen-encoder\nmodels   on   image   segmentation   while   being   up   to   3 ×\nfaster,   and   that   it   performs   on   par   with   fully   finetuned\nmethods for video segmentation at speeds up to  8 ×  higher\nthan frozen-encoder baselines."
+    },
+    {
+      "section": "Image Segmentation.   Image segmentation is a fundamen-",
+      "text": "tal   computer   vision   task   that   requires   dividing   an   image\ninto   pixel-level   segments,   each   associated   with   a   class   la-\nbel. Traditionally, segmentation methods relied on per-pixel\nclassification [ 7 ,  8 ,  28 ], assigning a label to each pixel.\nRecently,   the   Mask   Transformer   paradigm   [ 4 ,   10 ,   44 ]\nhas   enabled   a   unified   mask-classification   formulation   for\nsemantic,   instance,   and   panoptic   segmentation   [ 22 ].\nIn\nthis   framework,   a   set   of   learnable   object   queries   is   refined\nthrough alternating self-attention among queries and cross-\nattention to image features in a Transformer decoder.   Each\nprocessed query then predicts a class label via a linear layer\nand a binary segmentation mask via a dot product with the\nimage   features.   Several   works   have   been   built   on   top   of\nthis   framework   to   advance   the   state   of   the   art   in   universal\nimage segmentation [ 6 ,  11 ,  19 ,  24 ,  49 ].   To obtain compet-\nitive   results,   they   typically   combine   a   pre-trained   encoder,\na pixel decoder for multi-scale feature fusion, and a Trans-\nformer decoder for query-based mask and class prediction.\nWhen   using   large-scale   pre-trained   ViTs   [ 39 ,   41 ]   as   en-\ncoders,   models   typically   also   include   CNN-based   adapter\nmodules [ 9 ,  46 ] to recover multi-scale features.\nMore   recently,   EoMT   [ 20 ]   challenged   the   reliance   on\nsuch task-specific components by demonstrating that,   with\nsufficiently   large   and   well-trained   ViTs,   these   compo-\nnents are largely redundant:   by directly injecting learnable\nqueries   into   the   last   encoder   layers,   EoMT   achieves   com-\npetitive   accuracy   at   a   significantly   higher   inference   speed.\n2\nMoreover, EoMT benefits from ongoing ViT advancements,\nsuch as Token Merging [ 3 ,  31 ,  37 ] and FlashAttention [ 12 ]."
+    },
+    {
+      "section": "Video Segmentation.   Video segmentation extends frame-",
+      "text": "level   segmentation   to   the   temporal   domain,   encompassing\nvideo instance segmentation (VIS) [ 48 ], video panoptic seg-\nmentation   (VPS)   [ 21 ],   and   video   semantic   segmentation"
+    },
+    {
+      "section": "Method",
+      "text": "follow   a   decoupled   paradigm:   a   per-frame   segmenter   pro-\nduces   masks   and   object   queries,   while   a   separate   tracker\nassociates   them   across   time   using   specialized   components\nsuch   as   context-aware   feature   extractors,   re-identification\nlayers, and temporal Transformer layers.\nVidEoMT [ 38 ] recently extended EoMT’s encoder-only\nphilosophy   to   video,   showing   that   these   tracking   modules\ncan   be   replaced   by   a   lightweight   query   propagation   mech-\nanism   used   alongside   the   plain   ViT   encoder,   achieving   5 –\n10 ×  speedups while preserving competitive accuracy.   Cru-\ncially, both EoMT and VidEoMT require finetuning the full\nViT   encoder,   preventing   the   encoder   from   being   used   for\nother   downstream   tasks.   Our   work   directly   addresses   this\nlimitation by moving query processing outside the encoder:\nwe   introduce   a   lightweight   decoder   that   applies   EoMT’s\nquery-based   attention   mechanism   on   top   of   a   fully   frozen\nViT,   retaining   the   architectural   simplicity   and   inference\nspeed   of   the   encoder-only   approach   while   keeping   the   en-\ncoder features shareable across different downstream tasks."
+    },
+    {
+      "section": "Vision Transformer.   A Vision Transformer [ 14 ] partitions",
+      "text": "an image  I  ∈ R 3 × H × W   into  N   non-overlapping patches of\nsize   p × p ,   which   are   linearly   projected   into   patch   tokens"
+    },
+    {
+      "section": "X 0   ∈ R D × N .   These   tokens   are   then   refined   by   L   Trans-",
+      "text": "former   layers   [ 43 ],   where   each   layer   l   applies   multi-head\nself-attention   ( MHSA )   and   a   feed-forward   network   ( FFN )\nwith residual connections:"
+    },
+    {
+      "section": "Z l   =  X l   +  MHSA",
+      "text": "\u0000\nNorm ( X l )\n\u0001\n,"
+    },
+    {
+      "section": "X l +1   =  Z l   +  FFN",
+      "text": "\u0000\nNorm ( Z l )\n\u0001\n.\n(1)\nwhere   Norm   denotes   Layer   Normalization   [ 2 ].   The   final\ntokens   X L   can   be   rearranged   in   a   spatial   grid   to   produce\nimage features at   H\np   ×  W\np   resolution."
+    },
+    {
+      "section": "EoMT.   Traditional   ViT-based   segmentation   models   stack",
+      "text": "a   CNN   adapter   [ 9 ],   a   pixel   decoder,   and   a   Transformer\ndecoder   [ 11 ]   with   masked   cross-attention   on   top   of   the\nViT   encoder.\nEoMT   [ 20 ]   shows   that,   with   strong   VFM\npre-training   [ 39 ,   41 ]   and   sufficiently   large   model   size,   all\nthese   modules   are   largely   redundant   and   can   be   removed,\nyielding large speedups at comparable accuracy.   Instead of\nleveraging these task-specific modules,  K  learnable queries"
+    },
+    {
+      "section": "Q lrn   = { q lrn",
+      "text": "i   ∈ R D } K\ni =1   are concatenated to the patch tokens\nafter   the   first   L 1   encoder   layers.   The   last   L 2   layers   then\nprocess the patch tokens and queries jointly as a single se-\nquence.   This   means   that   the   decoder’s   MHSA   operations,\nin   which   all   tokens   attend   to   all   others,   simultaneously\nconducts   query   self-attention   and   query-to-patch   attention\nwithout   an   explicit   cross-attention   mechanism   as   typically\nused   in   Transformer   decoders   [ 11 ].   Finally,   a   lightweight\nmask module predicts, for each query, a class label using a\nlinear layer and a segmentation mask through a dot product\nwith patch tokens  X L   spatially reorganized and upscaled to\nresolution   H\n4   ×   W\n4   .   During   training,   masked   attention   [ 11 ]\nis   applied   at   each   of   the   L 2   layers:   an   intermediate   mask\nprediction is computed per query and used to restrict query-\nto-patch attention to the query’s predicted mask region, im-\nproving   training   convergence.   However,   in   inference,   pre-\ndicting intermediate masks on every layer is expensive, and\nthe   custom   attention   pattern   is   incompatible   with   FlashAt-\ntention   [ 12 ],   which   requires   standard   unmasked   attention.\nTo   resolve   this,   mask   annealing   [ 20 ]   gradually   phases   out\nmasked   attention   during   training,   so   the   final   model   oper-\nates   without   any   masking,   unlocking   FlashAttention,   and\nroughly halving inference latency.   Crucially, for EoMT, the\nentire  encoder is finetuned, as the pre-trained attention must\nadapt to the newly introduced query tokens in order to pro-\nduce meaningful query representations from which accurate\nsegmentation predictions can be made."
+    },
+    {
+      "section": "VidEoMT.   VidEoMT [ 38 ] extends EoMT to online video",
+      "text": "segmentation   by   replacing   all   task-specific   tracking   com-\nponents   [ 23 ,   50 ,   51 ]   (tracker,   context-aware   features,   re-\nidentification   layers)   with   a   lightweight   query-level   tem-\nporal   propagation   mechanism.   In   the   first   frame   ( t   =   0 ),\nthe   model   operates   identically   to   EoMT,   taking   learnable\nqueries   Q lrn   and   producing   output   queries   Q 0 .   In   subse-\nquent   frames   ( t >  0 ),   the   output   queries   from   the   previous\nframe   are   fused   with   the   learned   queries   through   element-\nwise addition after a linear projection:"
+    },
+    {
+      "section": "Q F",
+      "text": "t   =  Linear ( Q t − 1 ) +  Q lrn .\n(2)\nThe fused queries  Q F\nt   are then fed into the encoder instead\nof the learnable queries, carrying temporal context from the\nprevious   frame   while   retaining   the   ability   to   detect   newly\nappearing   objects.   This   design   places   all   temporal   reason-\ning   in   the   query   tokens   and   in   the   lightweight   propagation\nmodule, avoiding slow task-specific modules.   However, as\nwith EoMT, the full encoder is finetuned."
+    },
+    {
+      "section": "Incompatibility   with   Frozen   Encoders.",
+      "text": "In   both   EoMT\nand   VidEoMT,   queries   are   concatenated   with   patch   tokens\ninside   the   encoder,   after   which   both   are   processed   by   the\nsame   attention   weights.   Since   pre-trained   attention   has   no\nrepresentation of these additional tokens, the weights must\nbe   updated   for   the   joint   patch-query   attention   to   be   effec-\ntive.   As   a   result,   freezing   the   encoder   does   not   merely   re-\nduce   accuracy,   it   fundamentally   prevents   the   mechanism\nfrom   functioning,   as   the   frozen   MHSA   has   no   means   to\n3"
+    },
+    {
+      "section": "ViT Encoder",
+      "text": "Figure 2.   Plain Mask Transformer (PMT) Architecture.   Instead of injecting the query tokens within the ViT encoder as in the encoder-\nonly framework of EoMT and VidEoMT, we extract features at multiple encoder levels and feed them into an efficient segmentation decoder\nthat processes queries and patch tokens in parallel.   ⊕ denotes element-wise addition.   ⊙ denotes the dot product.\nmeaningfully   attend   to   or   from   query   tokens   it   was   never\ntrained   on.   We   empirically   verify   this   in   Tab.   1 :   with   a\nfrozen   decoder,   using   an   encoder-only   model   results   in   a\ncomplete   collapse   of   performance,   confirming   the   specific\nincompatibility of EoMT’s joint patch-query attention with\nfrozen weights.   The same behavior applies in the video do-\nmain.   Although this is not a limitation of the encoder-only\ndesign  per se , it does make encoder-only models incompat-\nible with the frozen-encoder paradigm for which large-scale\nVFMs are currently being designed [ 41 ]."
+    },
+    {
+      "section": ". Plain Mask Transformer Architecture",
+      "text": "To enable efficient and accurate segmentation while using a\nfrozen   ViT   encoder,   our   key   insight   is   that   the   behavior   of\nthe last  L 2   layers of EoMT’s encoder can be mimicked by\nsmall   decoder   consisting   of   the   same   types   of   layers.   The\napplication   of   this   decoder,   which   we   call   the   Plain   Mask\nDecoder (PMD), allows the ViT encoder to remain frozen,\npreserving pre-training knowledge and enabling the ViT to\nserve any number of downstream tasks in parallel.   The re-\nsulting model is called the Plain Mask Transformer (PMT)."
+    },
+    {
+      "section": "Decoder   Layers.",
+      "text": "The   decoder   contains   vanilla   Trans-\nformer   layers   that   mirror   the   architecture   of   the   DINOv3\nencoder   layers   [ 41 ],   matching   the   hidden   dimension,   the\nnumber   of   heads   and   the   FFN   design.   Following   EoMT,\nqueries   Q lrn   and   patch   tokens   X L   are   concatenated   into\na   single   sequence   and   processed   through   standard   MHSA :\nsince   all   tokens   attend   to   all   others,   this   jointly   achieves\nquery   self-attention,   patch   token   self-attention,   and   atten-\ntion   between   queries   and   patches   in   both   directions,   just\nlike   EoMT.   Unlike   EoMT,   however,   these   are   standalone\nlayers trained from randomly initialized weights, while the\nencoder   weights   remain   entirely   frozen.   We   use   L d   =   6\ndecoder layers by default (see Tab.  5 ).\nFollowing   EoMT,   masked   attention   [ 11 ]   is   applied   dur-\ning training in each decoder layer, forcing each query to at-\ntend to its predicted region.   Mask annealing [ 20 ] then pro-\ngressively   phases   out   this   masking,   yielding   a   consistently\nfaster   mask-free   decoder   at   inference.   We   denote   the   set\nof   decoder   output   queries   as   ˆ Q   =   { ˆ q i   ∈ R D } K\ni =1   and   the\ndecoder output patch tokens as   ˆ X  ∈ R D × N ."
+    },
+    {
+      "section": "Mask   Module.",
+      "text": "We   adopt   the   same   prediction   head   as\nEoMT and VidEoMT. For each output query   ˆ q i   ∈ ˆ Q , class\nlogits   c i   ∈ R C   are   predicted   by   a   linear   layer.   Mask   log-\nits   M i   ∈ R"
+    },
+    {
+      "section": "H",
+      "text": "4   ×  W\n4   are   obtained   by   first   applying   a   three-\nlayer   MLP   to   ˆ q i ,   then   taking   its   dot   product   with   X up   ∈"
+    },
+    {
+      "section": "R D ×  H",
+      "text": "4   ×  W\n4   , obtained after reshaping and upscaling   ˆ X ."
+    },
+    {
+      "section": "L 1   encoder   layers   can   adapt   to   the   target   task   producing",
+      "text": "features that are more useful for the query-processing layers\nthat follow. A frozen encoder cannot do this: its features are\nfixed and not adapted to the target task.   As a consequence,\nthe   final   encoder   output   X L   may   not   contain   all   cues   that\nare   useful   for   segmentation   ( e.g .,   edges,   boundaries),   even\nthough these may be available in features of earlier layers.\nAnalogously to how adapters [ 9 ] extract multi-scale fea-\ntures   at   selected   encoder   depths,   we   introduce   lateral   con-\nnections   that   collect   patch   tokens   X l   from   evenly   spaced\nencoder layers (including the final layer  L ).   This allows the\ndecoder   to   leverage   the   rich   information   available   at   dif-\nferent   encoder   depths,   improving   the   quality   of   the   mask\npredictions.   For normalization,   we follow the strategy that\nthe DINOv3 [ 41 ] paper uses when feeding intermediate fea-\ntures to the decoder for downstream tasks.   Specifically, we\napply the encoder’s final Layer Normalization [ 2 ] to all ex-\ntracted   token   features,   followed   by   a   trainable   Batch   Nor-\n4\nmalization [ 18 ] layer.   All token features are then projected\nby   a   two-layer   MLP   with   a   residual   connection.   Features\nfrom   all   branches   are   summed   element-wise   into   a   single\nmulti-depth representation that serves as the set of patch to-\nkens that is fed into the decoder."
+    },
+    {
+      "section": "Positional   Encoding.",
+      "text": "DINOv3   [ 41 ]   employs   Rotary   Po-\nsition Embeddings (RoPE) [ 42 ] in every encoder layer, en-\ncoding   relative   spatial   positions   directly   into   the   attention\ncomputation   by   rotating   queries   and   keys   before   the   dot\nproduct.   Since our decoder uses its own freshly initialized\nattention   layers,   applying   the   same   RoPE   provides   them\nwith   explicit   spatial   context,   supplementing   the   positional\ninformation already embedded in the patch tokens.\nWe   therefore   apply   RoPE   to   the   decoder   layers:   patch\ntokens retain the grid coordinates assigned by the encoder,\nwhile query tokens receive no positional encoding, as keep-\ning   them   position-free   preserves   the   permutation-invariant\nnature of the set of object queries. Their spatial grounding is\nprovided implicitly through attention to positioned patches\nand   through   the   mask   module.   This   adds   no   learnable   pa-\nrameters, as RoPE is a deterministic function of position."
+    },
+    {
+      "section": ". Temporal Modeling",
+      "text": "Our   approach   extends   naturally   to   online   video   segmen-\ntation   by   adopting   VidEoMT’s   query   propagation   mecha-\nnism   [ 38 ].   Each   frame   is   processed   independently   by   the\nfrozen   encoder   and   lateral   connections;   the   only   temporal\nlink is found in the queries fed to the decoder.\nAt  t  = 0  the decoder receives the learnable queries  Q lrn .\nIn subsequent frames ( t >  0 ), the output queries of the pre-\nvious   frame   are   fused   with   the   learnable   queries   following\nEq.   ( 2 )   and   fed   to   the   PMD   decoder.   As   in   VidEoMT,   no\ntracker,   re-identification   layers,   or   context-aware   features\nare needed, yielding a simple and fast video architecture."
+    },
+    {
+      "section": ". Experimental Setup",
+      "text": "Unless   stated   otherwise,\nwe   follow   the   experimental\nsetup   of   EoMT   [ 20 ]   for   image-level   experiments   and\nVidEoMT [ 38 ] for video-level experiments."
+    },
+    {
+      "section": "Datasets.   For image segmentation, we use COCO [ 25 ] for",
+      "text": "panoptic and instance segmentation, and ADE20K [ 52 ] for\nsemantic   segmentation.   For   video,   we   use   YouTube-VIS\n2019 and 2021 [ 47 ] for video instance segmentation (VIS),\nVIPSeg   [ 34 ]   for   video   panoptic   segmentation   (VPS),   and"
+    },
+    {
+      "section": "Models.   Unless stated otherwise,   we use DINOv3-L [ 41 ]",
+      "text": "as the encoder with a patch size of  16 × 16  and a  640 × 640\nresolution.\nOur   PMD   matches   the   hidden   dimension   of\nthe encoder to avoid information bottlenecks.   Register and\nclass   tokens   are   propagated   together   with   the   patch   tokens\nthrough the decoder layers,   and the  MLP  expansion factors\nMethod\nParams   GFLOPs   FPS"
+    },
+    {
+      "section": "PQ",
+      "text": "(0)   ViT-Adapter + Mask2Former"
+    },
+    {
+      "section": "M",
+      "text": "804\n48\n56.4\n(1)\nw/o ViT-Adapter"
+    },
+    {
+      "section": "M",
+      "text": "740\n62\n54.0\n(2)\nw/o Pixel decoder"
+    },
+    {
+      "section": "M",
+      "text": "686\n77\n52.9\n(3)\nw/o Multi-scale"
+    },
+    {
+      "section": "M",
+      "text": "673\n81\n52.0\n(4)\nw/o Transformer decoder = EoMT"
+    },
+    {
+      "section": "M",
+      "text": "668\n162\n6.8\nTable   1.   From   ViT-Adapter   +   Mask2Former   to   EoMT.   Step-\nwise removal of Mask2Former modules toward EoMT with  frozen\nDINOv3 [ 41 ] encoder.   Evaluated on COCO  val2017  [ 25 ].\nare set to 1. For ViT-Adapter, we follow the implementation\nfrom the DINOv3 paper [ 41 ], removing the injectors to pre-\nserve the frozen encoder representation and adding a learn-\nable   Batch   Normalization   [ 18 ]   layer   at   each   feature   level.\nAt   inference,   the   QKV   projections   within   the   MHSA   layers\nof the encoder and decoder are fused to reduce latency."
+    },
+    {
+      "section": "Training.   All   models   are   trained   in   mixed   precision   with",
+      "text": "AdamW [ 30 ] and mask annealing following EoMT with DI-\nNOv3.   For   image   models,   we   use   a   batch   size   of   16,   a\nlearning rate of  2  ×  10 − 4 , cosine annealing scheduler [ 29 ],\nand   training   schedules   of   12   and   16   epochs   on   COCO\nand   ADE20K,   respectively.   For   video   models,   we   use   a\nbatch size of 8 with a 5-frame temporal window, a learning\nrate of  10 − 4 ,   polynomial learning rate decay with a power\nof   0.9,   and   training   iterations   and   resolutions   following"
+    },
+    {
+      "section": "CAVIS   [ 23 ].   In   both   settings,   we   apply   linear   warmup   for",
+      "text": "6000   iterations.   Following   common   practice   [ 11 ,   20 ,   38 ],\nwe   use   cross-entropy   for   classification   and   binary   cross-\nentropy combined with Dice loss [ 35 ] for mask prediction.\nFor   video,   ground-truth   matching   follows   VidEoMT:   each\nobject is matched to a query in its first appearing frame, and\nthe assignment persists across subsequent frames."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "For   image   segmentation,   we   report   Panop-\ntic   Quality   (PQ)   [ 22 ]   for   panoptic,   mean   Intersection\nover   Union   (mIoU)   for   semantic,   and   Average   Precision"
+    },
+    {
+      "section": "(AP)   [ 25 ]   for   instance   segmentation.   For   video   segmen-",
+      "text": "tation,   we   report   AP   and   Average   Recall   (AR)   [ 47 ]   for"
+    },
+    {
+      "section": "VIS,   Video   Panoptic   Quality   (VPQ)   [ 21 ]   and   Segmenta-",
+      "text": "tion   and   Tracking   Quality   (STQ)   [ 45 ]   for   VPS,   and   mIoU\nalong   with   Video   Consistency   (mVC)   [ 33 ]   for   VSS.   Infer-\nence   speed   (FPS)   is   measured   on   an   NVIDIA   H100   GPU\nwith   FlashAttention-2   [ 12 ] and   torch.compile   [ 1 ]   en-\nabled,   using   a   batch   size   of   1   and   automatic   mixed   preci-\nsion.   We set  torch.compile  to  max-autotune  mode for\nimage   experiments   and   use   the   default   settings   for   video\nexperiments due to varying resolutions.   GFLOPs are com-\nputed   using   fvcore   [ 32 ].   Both   FPS   and   GFLOPs   are   mea-\nsured by averaging across the validation sets."
+    },
+    {
+      "section": "From   ViT-Adapter   +   Mask2Former   to   EoMT.",
+      "text": "In\nTab.   1 ,   we   evaluate   the   stepwise   removal   of   the   task-\nspecific   components   from   the   state-of-the-art   ViT-Adapter\n5\nMethod\nParams\nGFLOPs   FPS"
+    },
+    {
+      "section": "PQ",
+      "text": "DINOv3 pre-training\n(0)\nEoMT [ 20 ]"
+    },
+    {
+      "section": "M",
+      "text": "668\n162\n6.8\n(1)\nw/ plain decoder"
+    },
+    {
+      "section": "M",
+      "text": "762\n145\n53.7\n(2)\nw/ lateral connections"
+    },
+    {
+      "section": "M",
+      "text": "767\n142\n55.9\n(3)\nw/ RoPE =  PMT  (Ours)"
+    },
+    {
+      "section": "M",
+      "text": "767\n141\n56.1\nDINOv2 pre-training\n(0)\nEoMT [ 20 ]"
+    },
+    {
+      "section": "M",
+      "text": "668\n172\n22.3\n(1)\nw/ plain decoder"
+    },
+    {
+      "section": "M",
+      "text": "762\n150\n51.4\n(2)\nw/ lateral connections"
+    },
+    {
+      "section": "M",
+      "text": "767\n148\n55.0\n(3)\nw/ RoPE =  PMT  (Ours)"
+    },
+    {
+      "section": "M",
+      "text": "767\n146\n55.5\nTable   2.   From   EoMT   to   PMT.   Stepwise   addition   of   modules\nfrom EoMT with  frozen  DINOv3 [ 41 ] and DINOv2 [ 39 ] encoders\nto our PMT. Evaluated on COCO  val2017  [ 25 ].\n+   Mask2Former   [ 9 ,   11 ]   model   toward   the   EoMT   encoder-\nonly   design   with   a   frozen   DINOv3   encoder.\nSteps   (1) –\n(3)   strip   the   adapter,   pixel   decoder,   and   multi-scale   pro-\ncessing successively, dropping PQ from 56.4 to 52.0 while\nnearly   doubling   FPS.   Unlike   in   the   original   EoMT   results\nwhere   these   modules   proved   largely   redundant   under   full\nencoder   fine-tuning,   the   frozen   setting   exposes   a   clear   ac-\ncuracy loss:   the remaining trainable parameters lack the ca-\npacity to compensate for the removed components when the\nencoder   cannot   adapt.   Step   (4)   reaches   the   encoder-only\nEoMT configuration and, despite doubling again the speed,\ncauses   a   far   more   severe   collapse   to   6.8   PQ.   Interestingly,\nthis   drop   is   disproportionate   compared   to   any   earlier   step,\nhighlighting the failure of joint patch-query attention when\nkeeping weights frozen, as discussed in Sec.  3 ."
+    },
+    {
+      "section": "From   EoMT   with   Frozen   Encoder   to   PMT.   In   Tab.   2 ,",
+      "text": "we   build   up   from   the   collapsed   frozen   EoMT   baseline   to\nour   PMT.   Step   (1)   adds   a   standalone   PMD   and   immedi-\nately   closes   most   of   the   gap,   reaching   53.7   PQ   with   DI-\nNOv3 while only reducing inference speed by a small mar-\ngin. Step  (2)  incorporates lateral connections that fuse patch\ntokens collected at evenly spaced encoder depths, adding a\nfurther 2.2 PQ to reach 55.9 PQ at very little computational\ncost.   Step   (3)   applies   RoPE   to   the   decoder,   yielding   the\nfull   PMT   model   at   56.1   PQ,   a   + 0.2   PQ   gain   at   virtually\nno   cost,   as   RoPE   introduces   minimal   latency   and   no   ad-\nditional   learnable   parameters.   Comparable   trends   hold   for\nDINOv2,   although   the   gains   from   lateral   connections   and\nRoPE   over   the   plain   decoder   are   more   pronounced,   with\n+ 3.6   and   + 0.5   PQ,   respectively.   This   is   consistent   with\nEoMT’s observation [ 20 ] that stronger pre-training reduces\nthe necessity for additional components.   Overall, these re-\nsults show that processing queries with our lightweight de-\ncoder and lateral connections is sufficient to recover almost\nall   of   the   performance   of   the   baseline   with   complex   task-\nspecific modules, while being  3 ×  faster ( cf.  Tab.  1 )."
+    },
+    {
+      "section": "Impact of Pre-training.   Next, we examine how the extent",
+      "text": "of   pre-training   affects   the   performance   of   PMT   in   Tab.   3 .\nWe evaluate DINOv3 [ 41 ] and DINOv2 [ 39 ] as large-scale\nModel\nPre-train\nParams\nGFLOPs"
+    },
+    {
+      "section": "PQ",
+      "text": "ViT-Adapter + M2F   DINOv3"
+    },
+    {
+      "section": "M",
+      "text": "804\n48\n56.4"
+    },
+    {
+      "section": "M",
+      "text": "767\n141\n56.1\nViT-Adapter + M2F   DINOv2"
+    },
+    {
+      "section": "M",
+      "text": "804\n49\n55.7"
+    },
+    {
+      "section": "M",
+      "text": "767\n146\n55.5\nViT-Adapter + M2F"
+    },
+    {
+      "section": "M",
+      "text": "804\n49\n51.0"
+    },
+    {
+      "section": "M",
+      "text": "767\n146\n49.7\nViT-Adapter + M2F"
+    },
+    {
+      "section": "M",
+      "text": "804\n49\n47.0"
+    },
+    {
+      "section": "M",
+      "text": "767\n146\n44.6\nTable   3.   Pre-training.   Impact   of   pre-training   on   segmentation\nquality.   Evaluated on COCO  val2017  [ 25 ].\nModel\nSize\nParams\nGFLOPs"
+    },
+    {
+      "section": "PQ",
+      "text": "ViT-Adapter + M2F"
+    },
+    {
+      "section": "M",
+      "text": "804\n48\n56.4"
+    },
+    {
+      "section": "M",
+      "text": "767\n141\n56.1\nViT-Adapter + M2F"
+    },
+    {
+      "section": "M",
+      "text": "334\n64\n53.6"
+    },
+    {
+      "section": "M",
+      "text": "281\n262\n52.8\nViT-Adapter + M2F"
+    },
+    {
+      "section": "M",
+      "text": "163\n73\n49.6"
+    },
+    {
+      "section": "M",
+      "text": "91\n400\n45.3\nTable 4.   Model Size.   Impact of model size on segmentation qual-\nity and inference speed.   Evaluated on COCO  val2017  [ 25 ].\nBlocks\nParams\nGFLOPs"
+    },
+    {
+      "section": "PQ",
+      "text": "2"
+    },
+    {
+      "section": "M",
+      "text": "695\n153\n54.0\n4"
+    },
+    {
+      "section": "M",
+      "text": "731\n146\n55.6\n6"
+    },
+    {
+      "section": "M",
+      "text": "767\n141\n56.1\n8"
+    },
+    {
+      "section": "M",
+      "text": "803\n133\n56.1\nTable 5.   Decoder Layers.   Impact of number of decoder layers on\nsegmentation   quality   and   inference   speed.   Evaluated   on   COCO\nval2017  [ 25 ].\nself-supervised   models,   as   well   as   encoders   trained   in   su-\npervised   fashion   on   ImageNet-21K   [ 13 ]   and   ImageNet-"
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "essential for PMT to close the gap with ViT-Adapter + M2F.\nThe accuracy difference with DINOv3 and DINOv2 is just\n0.3   and   0.2   PQ,   respectively,   while   the   gap   increases   to\n1.3   PQ   under   ImageNet-21K   supervision   and   2.4   PQ   un-\nder   ImageNet-1K.   The   widening   gap   at   less   extensive   pre-\ntraining   confirms   that   the   frozen   encoder   must   carry   suffi-\nciently   rich   features   for   the   lightweight   PMD   to   substitute\ncomplex   task-specific   modules,   which   is   in   line   with   the\nscaling observations of EoMT [ 20 ] and VidEoMT [ 38 ]."
+    },
+    {
+      "section": "Impact   of   Model   Size.",
+      "text": "Tab.   4   extends   the   comparison\nto   different   model   sizes.   While   the   accuracy   gap   between\nPMT and ViT-Adapter + M2F reaches 4.3 PQ with the small\nViT-S model, it narrows to 0.8 PQ with ViT-B and decreases\nto just 0.3 PQ with ViT-L. This scaling pattern confirms that"
+    },
+    {
+      "section": "PMD   requires   a   frozen   encoder   with   sufficient   capacity   to",
+      "text": "compensate for the absence of dedicated feature-adaptation\nmodules.   Importantly, these results also show that PMT de-\nlivers   considerably   higher   inference   speed   across   all   sizes,\nwith  ∼ 3 ×  at ViT-L. In fact,   ViT-L is even faster than ViT-\nAdapter + M2F at ViT-S at much greater accuracy, demon-\nstrating PMT’s superior accuracy–efficiency trade-off.\n6\nMethod\nBackbone\nPre-training\nEncoder\nInput size\nParams\nGFLOPs"
+    },
+    {
+      "section": "AP",
+      "text": "Mask2Former †   [ 11 ]\nSwin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "800 2"
+    },
+    {
+      "section": "M",
+      "text": "868\n24\n57.8\n50.1\nkMaX-DeepLab [ 49 ]\nConvNext-L [ 27 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "1281 2"
+    },
+    {
+      "section": "M",
+      "text": "–\n–\n58.0\n–\nOneFormer †   [ 19 ]\nDiNAT-L [ 15 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "800 2"
+    },
+    {
+      "section": "M",
+      "text": "736\n20\n58.0\n49.2\nMaskDINO †   [ 24 ]\nSwin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "800 2"
+    },
+    {
+      "section": "M",
+      "text": "1326\n14\n58.3\n52.3\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv2\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "669\n172\n56.0\n45.2\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv3\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "668\n162\n56.8\n45.9\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv2\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4146\n35\n58.3\n48.8\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv3\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4144\n34\n58.9\n49.9\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv2\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "804\n49\n55.7\n45.0\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv3\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "804\n48\n56.4\n45.9"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv2\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "767\n146\n55.5\n44.4"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv3\n640 2"
+    },
+    {
+      "section": "M",
+      "text": "767\n141\n56.1\n45.4\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv2\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4711\n16\n56.6\n47.6\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv3\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4711\n15\n58.1\n50.0"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv2\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4925\n30\n56.1\n45.9"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv3\n1280 2"
+    },
+    {
+      "section": "M",
+      "text": "4925\n29\n58.1\n49.0\nTable   6.   PMT   for   Panoptic   and   Instance   Segmentation   on   COCO   val2017   [ 25 ].   † During   inference,   these   models   resize   the   shortest\nside of images to the indicated scale, while preserving the aspect ratio.\nMethod\nBackbone\nPre-training\nEncoder\nInput size\nParams\nGFLOPs"
+    },
+    {
+      "section": "FPS",
+      "text": "mIoU\nMask2Former †   [ 11 ]\nSwin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "640 2"
+    },
+    {
+      "section": "M",
+      "text": "–\n33\n56.1\nMaskDINO †   [ 24 ]\nSwin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "640 2"
+    },
+    {
+      "section": "M",
+      "text": "–\n–\n56.6\nOneFormer †   [ 19 ]\nConvNext-XL [ 27 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "640 2"
+    },
+    {
+      "section": "M",
+      "text": "607\n21\n57.4\nOneFormer †   [ 19 ]\nDiNAT-L [ 15 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "896 2"
+    },
+    {
+      "section": "M",
+      "text": "678\n19\n58.1\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv2\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "721\n154\n58.4\nEoMT [ 20 ]\nViT-L [ 14 ]\nDINOv3\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "721\n151\n59.5\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv2\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "879\n41\n57.5"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv2\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "823\n135\n57.2\nMask2Former [ 11 ]\nViT-Adapter-L [ 9 ]\nDINOv3\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "879\n40\n58.7"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv3\n512 2"
+    },
+    {
+      "section": "M",
+      "text": "823\n128\n58.5\nTable   7.   PMT   for   Semantic   Segmentation   on   ADE20K   [ 52 ].   † These   models   resize   the   shortest   side   of   images   to   the   indicated   scale\nduring inference, while preserving the aspect ratio."
+    },
+    {
+      "section": "Number of Decoder   Layers.   In   Tab.   5 ,   we   evaluate how",
+      "text": "the   depth   of   the   decoder   affects   accuracy   and   speed.   In-\ncreasing from 2 to 4 layers brings a consistent improvement\nfrom 54.0 to 55.6 PQ, and 6 layers add a further 0.5 PQ to\nreach   56.1   PQ.   Beyond   that,   scaling   up   to   8   layers   yields\nno additional gain.   Performance thus saturates quickly with\ndepth,   showing that   a shallow   decoder is   sufficient for this\ndesign.   We therefore set  L d  =6  as the default."
+    },
+    {
+      "section": "Panoptic and Instance Segmentation.   In Tab.  6 , we com-",
+      "text": "pare   PMT   with   state-of-the-art   panoptic   and   instance   seg-\nmentation   methods   on   COCO.   Compared   to   the   state-of-\nthe-art frozen-encoder method that uses task-specific com-\nponents (ViT-Adapter + Mask2Former), PMT obtains com-\nparable   performance   at   much   higher   speed.   PMT   scores\nonly   0.3   PQ   and   0.5   AP   lower   at   640 2   resolution,   but   is\n∼ 3 ×  faster.   This demonstrates PMT’s effectiveness and ef-\nficiency.   Compared to the encoder-only EoMT, which  does\nfully finetune the encoder, PMT obtains only slightly lower\naccuracy   and   speeds,   with   a   0.7   PQ   difference   and   13%\nspeed   decrease   at   640 2 .   Remarkably,   PMT   achieves   this\nwhile   keeping   the   encoder   frozen,   making   it   much   more\nsuitable for applications that require reusing the frozen en-\ncoder for multiple downstream tasks."
+    },
+    {
+      "section": "Semantic   Segmentation.",
+      "text": "In   Tab.   7 ,   we   evaluate   PMT\nfor semantic segmentation on ADE20K. Compared to ViT-\nAdapter   +   Mask2Former   with   a   frozen   encoder,   PMT   ob-\ntains   almost   the   same   segmentation   accuracy,   with   drops\nof   only   0.3   and   0.2   mIoU   in   combination   with   DINOv2\nand   DINOv3,   respectively.   Once   again,   PMT   is   consider-\nably faster, with inference speed gains of more than  3 × , at\n128   vs .   40   FPS.   Like   for   panoptic   and   instance   segmenta-\ntion, EoMT with a finetuned encoder performs slightly bet-\nter than PMT, but the accuracy drop remains modest at 1.0\nor   1.2   mIoU.   Of   course,   PMT   obtains   these   scores   with-\nout finetuning the encoder, improving its applicability.   To-\ngether, these results confirm that the earlier observed accu-\nracy and efficiency advantages also extend to semantic seg-\nmentation, demonstrating the generality of PMT’s design."
+    },
+    {
+      "section": "Video   Instance   Segmentation.",
+      "text": "In   Tab.   8 ,   we   compare\nPMT with state-of-the-art online VIS models on YouTube-"
+    },
+    {
+      "section": "VIS   2019   and   2021.",
+      "text": "Here,   the   baseline   frozen-encoder\nmodel   that   we   compare   to   is   CAVIS   [ 23 ],   a   state-of-the-\n7\nMethod\nBackbone\nPre-training   Encoder\nYouTube-VIS 2019  val  [ 47 ]\nYouTube-VIS 2021  val  [ 47 ]\nGFLOPs"
+    },
+    {
+      "section": "AR 10",
+      "text": "GFLOPs"
+    },
+    {
+      "section": "AR 10",
+      "text": "MinVIS [ 17 ]\nSwin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "401\n29\n61.6\n68.6\n66.6\n255\n30\n55.3\n62.0\n60.8"
+    },
+    {
+      "section": "DVIS [ 50 ]",
+      "text": "Swin-L [ 26 ]"
+    },
+    {
+      "section": "IN21K",
+      "text": "411\n23\n63.9\n70.4\n69.0\n405\n24\n58.7\n66.6\n64.6"
+    },
+    {
+      "section": "IN21K",
+      "text": "415\n13\n65.7\n73.6\n70.7\n410\n11\n61.1\n68.2\n66.6"
+    },
+    {
+      "section": "DVIS++ [ 51 ]",
+      "text": "ViT-Adapter-L [ 9 ]\nDINOv2\n846\n18\n67.7\n75.3\n73.7\n830\n17\n62.3\n70.2\n68.0"
+    },
+    {
+      "section": "DVIS-DAQ [ 53 ]   ViT-Adapter-L [ 9 ]",
+      "text": "DINOv2\n851\n10\n68.3\n76.1\n73.5\n836\n10\n62.4\n70.8\n68.0"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]\nDINOv2\n838\n15\n68.9\n76.2\n73.6\n824\n15\n64.6\n72.5\n69.3\nVidEoMT [ 38 ]\nViT-L [ 14 ]\nDINOv2\n566\n160\n68.6\n75.6\n73.9\n560\n160\n63.1\n69.3\n68.1\nVidEoMT [ 38 ]\nViT-L [ 14 ]\nDINOv3\n566\n133\n68.9\n77.4\n74.8\n560\n133\n63.2\n71.6\n69.1"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]\nDINOv2\n838\n15\n68.5\n75.8\n73.5\n824\n15\n64.3\n72.0\n68.9"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv2\n617\n124\n68.8\n75.2\n73.9\n616\n124\n63.8\n69.4\n68.1"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]\nDINOv3\n838\n13\n68.8\n75.6\n73.3\n824\n13\n63.9\n71.6\n68.2"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]\nDINOv3\n617\n113\n69.2\n76.5\n74.6\n616\n113\n64.3\n71.2\n69.0\nTable 8.   PMT for Online VIS on YouTube-VIS 2019 and 2021 [ 47 ].\nMethod\nBackbone"
+    },
+    {
+      "section": "PT   Encoder",
+      "text": "VIPSeg  val  [ 34 ]\nGFLOPs"
+    },
+    {
+      "section": "DVIS [ 50 ]",
+      "text": "Swin-L [ 26 ]"
+    },
+    {
+      "section": "I",
+      "text": "879\n20\n54.7\n47.7"
+    },
+    {
+      "section": "DVIS++ [ 51 ]",
+      "text": "ViT-Adapter-L [ 9 ]   D2\n2290\n13\n56.0\n49.8"
+    },
+    {
+      "section": "DVIS-DAQ [ 53 ]   ViT-Adapter-L [ 9 ]   D2",
+      "text": "2315\n4\n57.4\n52.0"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]   D2\n2612\n10\n56.9\n51.0\nVidEoMT [ 38 ]\nViT-L [ 14 ]"
+    },
+    {
+      "section": "D2",
+      "text": "1897\n75\n55.2\n48.9\nVidEoMT [ 38 ]\nViT-L [ 14 ]"
+    },
+    {
+      "section": "D3",
+      "text": "1897\n71\n55.1\n48.1"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]   D2\n2612\n10\n56.4\n49.0"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]"
+    },
+    {
+      "section": "D2",
+      "text": "2037\n60\n55.3\n48.2"
+    },
+    {
+      "section": "CAVIS [ 23 ]",
+      "text": "ViT-Adapter-L [ 9 ]   D3\n2612\n9\n56.8\n51.2"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]"
+    },
+    {
+      "section": "D3",
+      "text": "2037\n58\n55.5\n49.2\nTable 9.   PMT for Online VPS on VIPSeg [ 21 ].   PT : Pre-training."
+    },
+    {
+      "section": "I : ImageNet-21K [ 13 ].   D2 :   DINOv2 [ 39 ]).   D3 :   DINOv3 [ 41 ].",
+      "text": "Method\nBackbone"
+    },
+    {
+      "section": "VSPW  val  [ 33 ]",
+      "text": "GFLOPs   FPS   mVC 16   mIoU"
+    },
+    {
+      "section": "DVIS [ 50 ]",
+      "text": "Swin-L [ 26 ]"
+    },
+    {
+      "section": "I",
+      "text": "879\n22\n94.3\n61.3"
+    },
+    {
+      "section": "DVIS++ [ 51 ]",
+      "text": "ViT-Adapter-L [ 9 ]   D2\n2290\n13\n94.2\n62.8\nVidEoMT [ 38 ]   ViT-L [ 14 ]"
+    },
+    {
+      "section": "D2",
+      "text": "1909\n73\n95.0\n64.9\nVidEoMT [ 38 ]   ViT-L [ 14 ]"
+    },
+    {
+      "section": "D3",
+      "text": "1909\n71\n94.4\n64.0"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]"
+    },
+    {
+      "section": "D2",
+      "text": "2049\n60\n94.6\n64.3"
+    },
+    {
+      "section": "PMT  (Ours)",
+      "text": "ViT-L [ 14 ]"
+    },
+    {
+      "section": "D3",
+      "text": "2049\n57\n94.9\n65.7\nTable 10.  PMT for Online VSS on VSPW [ 33 ]. PT : Pre-training."
+    },
+    {
+      "section": "I : ImageNet-21K [ 13 ].   D2 :   DINOv2 [ 39 ]).   D3 :   DINOv3 [ 41 ].",
+      "text": "art   model   with   many   task-specific   components   that   per-\nforms   well   when   keeping   the   backbone   frozen.   Compared\nto CAVIS, PMT obtains consistent speed gains of more than\n8 × ,   which   are   even   larger   than   those   observed   for   image\nsegmentation, as video segmentation models use additional\ninefficient components. For this task, PMT also consistently\nobtains a slightly higher accuracy than CAVIS when using a\nDINOv3 encoder, with 69.2  vs . 68.8 mAP for Youtube-VIS\n2019.   Notably,   PMT   even   performs   better   than   the   state-\nof-the-art   CAVIS   and   VidEoMT   models   that   finetune   the\nencoder,   while   being   only   slightly   slower   than   VidEoMT.\nThese results demonstrate the strength of PMT’s design for\nvideo segmentation, as they show that it can obtain state-of-\nthe-art results at high inference speeds, while still allowing\nthe frozen encoder to be reused for other tasks."
+    },
+    {
+      "section": "Video   Panoptic   Segmentation.",
+      "text": "In   Tab.   9 ,   we   compare\nPMT with state-of-the-art VPS methods on VIPSeg.   As in\nthe   video   instance   segmentation   setting,   PMT   is   substan-\ntially faster than the frozen-encoder CAVIS model.   In this\ncase,   PMT’s   accuracy   is   slightly   lower,   with   gaps   of   up   to\n1.3   VPQ,   which   we   expect   to   be   due   to   the   higher   com-\nplexity   of   the   VPS   task.   Again,   however,   PMT   performs\nbetter than VidEoMT that finetunes the encoder, while only\nbeing   slightly   slower.   These   results   offer   further   evidence\nof   the   effectiveness   of   PMT   and   its   favorable   accuracy   vs .\nefficiency trade-off."
+    },
+    {
+      "section": "Video   Semantic   Segmentation.",
+      "text": "In   Tab.   10 ,   we   evalu-\nate   PMT   for   video   semantic   segmentation   on   VSPW.   No-\ntably,   Plain   Mask Transformer   obtains new   state-of-the-art\nresults   on   this   dataset   in   terms   of   the   main   mIoU   metric,\nwith   65.7   vs .   the   prior   best   of   64.9.   Impressively,   this   is\nobtained   while   keeping   the   encoder   frozen.   This   further\ndemonstrates the strength of PMT’s design."
+    },
+    {
+      "section": "Conclusion",
+      "text": "In   this   work,   we   reconcile   the   architectural   simplicity   and\nspeed of encoder-only segmentation models with the practi-\ncal need to keep Vision Foundation Model encoders frozen.\nOur   Plain   Mask   Decoder   (PMD)   achieves   this   by   replicat-\ning   the   joint   query-patch   attention   of   EoMT’s   last   encoder\nblocks   in   a   small   module   that   operates   entirely   on   top   of\nfrozen   features.   The   resulting   model,   Plain   Mask   Trans-\nformer (PMT), applies seamlessly to both image and video\nsegmentation:   on   standard   image   benchmarks   it   matches\nthe   frozen-encoder   state   of   the   art   at   up   to   ∼ 3 ×   higher\ninference   speed,   while   on   video   benchmarks   it   achieves\naccuracies   on   par   with   fully   finetuned   methods,   at   up\nto   8 ×   the   speed   of   state-of-the-art   frozen-encoder   base-\nlines.   Our   ablations   confirm   that   the   effectiveness   of   the\nlightweight   PMD   depends   on   a   sufficiently   large   and   ex-\ntensively   pre-trained   encoder,   in   line   with   the   scaling   ob-\nservations   of   EoMT   [ 20 ]   and   VidEoMT   [ 38 ].\nBecause\nthe encoder remains entirely untouched, Plain Mask Trans-\nformer enables efficient multi-task deployment where a sin-\ngle shared frozen encoder serves multiple downstream tasks\nand datasets simultaneously.\n8"
+    },
+    {
+      "section": "Acknowledgements.   This work was partly funded by the",
+      "text": "Cynergy4MIE   project,   which   is   supported   by   the   Chips\nJoint   Undertaking   and   its   members,   including   the   top-up\nfunding by National Authorities under Grant Agreement No\n101140226."
+    },
+    {
+      "section": "References",
+      "text": "[1]   Jason Ansel, Edward Yang, Horace He, Natalia Gimelshein,\nAnimesh   Jain,   Michael   Voznesensky,   Bin   Bao,   Peter   Bell,\nDavid   Berard,   Evgeni   Burovski,   Geeta   Chauhan,   An-\njali   Chourdia,   Will   Constable,   Alban   Desmaison,   Zachary\nDeVito,   Elias   Ellison,   Will   Feng,   Jiong   Gong,   Michael\nGschwind,   Brian   Hirsh,   Sherlock   Huang,   Kshiteej   Kalam-\nbarkar,   Laurent   Kirsch,   Michael   Lazos,   Mario   Lezcano,\nYanbo Liang, Jason Liang, Yinghai Lu, C. K. Luk, Bert Ma-\nher,   et   al.   PyTorch   2:   Faster   machine   learning   through   dy-\nnamic   python   bytecode   transformation   and   graph   compila-\ntion.   In  ASPLOS , 2024.   5\n[2]   Jimmy   Lei   Ba,   Jamie   Ryan   Kiros,   and   Geoffrey   E.   Hin-\nton.   Layer normalization.   arXiv preprint arXiv:1607.06450 ,\n2016.   3 ,  4\n[3]   Daniel   Bolya,   Cheng-Yang   Fu,   Xiaoliang   Dai,   Peizhao\nZhang,   Christoph Feichtenhofer,   and Judy Hoffman.   Token\nmerging:   Your ViT but faster.   In  ICLR , 2023.   3\n[4]   Nicolas Carion, Francisco Massa, Gabriel Synnaeve, Nicolas\nUsunier, Alexander Kirillov, and Sergey Zagoruyko. End-to-\nend object detection with transformers.   In  ECCV , 2020.   2\n[5]   Mathilde   Caron,   Hugo   Touvron,   Ishan   Misra,   Herv´e   J´egou,\nJulien Mairal, Piotr Bojanowski, and Armand Joulin. Emerg-\ning   properties   in   self-supervised   vision   transformers.\nIn"
+    },
+    {
+      "section": "ICCV , 2021.   1",
+      "text": "[6]   Niccol`o\nCavagnero,\nGabriele\nRosi,\nClaudia\nCuttano,\nFrancesca   Pistilli,   Marco   Ciccone,   Giuseppe   Averta,   and\nFabio   Cermelli."
+    },
+    {
+      "section": "PEM:   Prototype-based   efficient   Mask-",
+      "text": "Former for image segmentation.   In  CVPR , 2024.   2\n[7]   Liang-Chieh   Chen,   George   Papandreou,   Iasonas   Kokkinos,\nKevin Murphy, and Alan L. Yuille.   DeepLab:   Semantic im-\nage   segmentation   with   deep   convolutional   nets,   atrous   con-\nvolution,   and   fully   connected   CRFs.   IEEE   TPAMI ,   40(4):\n834–848, 2018.   2\n[8]   Liang-Chieh Chen, Yukun Zhu, George Papandreou, Florian\nSchroff,   and   Hartwig   Adam.   Encoder-decoder   with   atrous\nseparable   convolution   for   semantic   image   segmentation.   In"
+    },
+    {
+      "section": "ECCV , 2018.   2",
+      "text": "[9]   Zhe   Chen,   Yuchen   Duan,   Wenhai   Wang,   Junjun   He,   Tong\nLu, Jifeng Dai, and Yu Qiao.   Vision transformer adapter for\ndense predictions.   In  ICLR , 2023.   1 ,  2 ,  3 ,  4 ,  6 ,  7 ,  8\n[10]   Bowen Cheng, Alex Schwing, and Alexander Kirillov.   Per-\npixel classification is not all you need for semantic segmen-\ntation.   In  NeurIPS , 2021.   1 ,  2\n[11]   Bowen Cheng, Ishan Misra, Alexander G. Schwing, Alexan-\nder   Kirillov,   and   Rohit   Girdhar.\nMasked-attention   mask\ntransformer   for   universal   image   segmentation.\nIn   CVPR ,\n2022.   1 ,  2 ,  3 ,  4 ,  5 ,  6 ,  7\n[12]   Tri Dao.   FlashAttention-2:   Faster attention with better par-\nallelism and work partitioning.   In  ICLR , 2024.   3 ,  5\n[13]   Jia   Deng,   Wei   Dong,   Richard   Socher,   Li-Jia   Li,   Kai   Li,\nand Li Fei-Fei.   ImageNet:   A large-scale hierarchical image\ndatabase.   In  CVPR , 2009.   6 ,  8\n[14]   Alexey   Dosovitskiy,   Lucas   Beyer,   Alexander   Kolesnikov,\nDirk   Weissenborn,   Xiaohua   Zhai,   Thomas   Unterthiner,\nMostafa Dehghani, Matthias Minderer, Georg Heigold, Syl-\nvain Gelly, Jakob Uszkoreit, and Neil Houlsby.   An image is\nworth   16x16   words:   Transformers   for   image   recognition   at\nscale.   In  ICLR , 2021.   1 ,  3 ,  7 ,  8\n[15]   Ali   Hassani   and   Humphrey   Shi.   Dilated   neighborhood   at-\ntention transformer.   arXiv preprint arXiv:2209.15001 , 2022.\n7\n[16]   Miran Heo, Sukjun Hwang, Jeongseok Hyun, Hanjung Kim,\nSeoung   Wug   Oh,   Joon-Young   Lee,   and   Seon   Joo   Kim.   A\nGeneralized Framework for Video Instance Segmentation. In"
+    },
+    {
+      "section": "CVPR , 2023.   3",
+      "text": "[17]   De-An   Huang,   Zhiding   Yu,   and   Anima   Anandkumar.   Min-"
+    },
+    {
+      "section": "VIS:   A   minimal   video   instance   segmentation   framework",
+      "text": "without video-based training.   In  NeurIPS , 2022.   8\n[18]   Sergey   Ioffe   and   Christian   Szegedy.   Batch   Normalization:\nAccelerating   Deep   Network   Training   by   Reducing   Internal\nCovariate Shift.   2015.   5\n[19]   Jitesh   Jain,   Jiachen   Li,   Mang   Tik   Chiu,   Ali   Hassani,   Nikita\nOrlov,   and Humphrey Shi.   OneFormer:   One transformer to\nrule universal image segmentation.   In  CVPR , 2023.   1 ,  2 ,  7\n[20]   Tommie Kerssies,   Niccol`o Cavagnero,   Alexander Hermans,\nNarges   Norouzi,   Giuseppe   Averta,   Bastian   Leibe,   Gijs\nDubbelman, and Daan de Geus.   Your ViT is secretly an im-\nage segmentation model.   In  CVPR , 2025.   1 ,  2 ,  3 ,  4 ,  5 ,  6 ,  7 ,\n8\n[21]   Dahun   Kim,   Sanghyun   Woo,   Joon-Young   Lee,   and   In   So\nKweon.   Video panoptic segmentation.   In  CVPR , 2020.   3 ,  5 ,\n8\n[22]   Alexander   Kirillov,   Kaiming   He,   Ross   Girshick,   Carsten\nRother, and Piotr Doll´ar.   Panoptic segmentation.   In  CVPR ,\n2019.   2 ,  5\n[23]   Seunghun Lee, Jiwan Seo, Kiljoon Han, Minwoo Choi, and\nSunghoon   Im.   Context-aware   video   instance   segmentation.\nIn  ICCV , 2025.   3 ,  5 ,  7 ,  8\n[24]   Feng   Li,   Hao   Zhang,   Huaizhe   Xu,   Shilong   Liu,   Lei   Zhang,\nLionel   M.   Ni,   and   Heung-Yeung   Shum.   Mask   DINO:   To-\nwards a unified transformer-based framework for object de-\ntection and segmentation.   In  CVPR , 2023.   2 ,  7\n[25]   Tsung-Yi Lin, Michael Maire, Serge Belongie, James Hays,\nPietro Perona, Deva Ramanan, Piotr Doll´ar, and C. Lawrence\nZitnick.   Microsoft   COCO:   Common   objects   in   context.   In"
+    },
+    {
+      "section": "ECCV , 2014.   1 ,  5 ,  6 ,  7",
+      "text": "[26]   Ze Liu,   Yutong Lin,   Yue   Cao,   Han   Hu,   Yixuan   Wei,   Zheng\nZhang,   Stephen   Lin,   and   Baining   Guo.   Swin   transformer:\nHierarchical   vision   transformer   using   shifted   windows.   In"
+    },
+    {
+      "section": "ICCV , 2021.   7 ,  8",
+      "text": "[27]   Zhuang Liu, Hanzi Mao, Chao-Yuan Wu, Christoph Feicht-\nenhofer, Trevor Darrell, and Saining Xie.   A ConvNet for the\n2020s.   In  CVPR , 2022.   7\n[28]   Jonathan   Long,   Evan   Shelhamer,   and   Trevor   Darrell.   Fully\nconvolutional   networks   for   semantic   segmentation.\nIn"
+    },
+    {
+      "section": "CVPR , 2015.   2",
+      "text": "9\n[29]   Ilya Loshchilov and Frank Hutter.   SGDR: Stochastic Gradi-\nent Descent with Warm Restarts.   In  ICLR , 2017.   5\n[30]   Ilya Loshchilov and Frank Hutter.   Decoupled weight decay\nregularization.   In  ICLR , 2019.   5\n[31]   Chenyang Lu, Daan de Geus, and Gijs Dubbelman. Content-\nAware   Token   Sharing   for   Efficient   Semantic   Segmentation\nWith Vision Transformers.   In  CVPR , 2023.   3\n[32]   Meta Research.   fvcore, 2023.   5\n[33]   Jiaxu Miao, Yunchao Wei, Yu Wu, Chen Liang, Guangrui Li,\nand Yi Yang.   VSPW: A Large-scale Dataset for Video Scene\nParsing in the Wild.   In  CVPR , 2021.   5 ,  8\n[34]   Jiaxu Miao, Xiaohan Wang, Yu Wu, Wei Li, Xu Zhang, Yun-\nchao   Wei,   and   Yi   Yang.   Large-Scale   Video   Panoptic   Seg-\nmentation   in   the   Wild:   A   Benchmark.   In   CVPR ,   2022.   5 ,\n8\n[35]   Fausto Milletari, Nassir Navab, and Seyed-Ahmad Ahmadi.\nV-Net:   Fully   convolutional   neural   networks   for   volumetric\nmedical image segmentation.   In  3DV , 2016.   5\n[36]   David   Nilsson   and   Cristian   Sminchisescu.   Semantic   video\nsegmentation by gated recurrent flow propagation.   In  CVPR ,\n2018.   3\n[37]   Narges   Norouzi,   Svetlana   Orlova,   Daan   de   Geus,   and   Gijs\nDubbelman."
+    },
+    {
+      "section": "ALGM:   Adaptive   local-then-global   token",
+      "text": "merging   for   efficient   semantic   segmentation   with   plain   vi-\nsion transformers.   In  CVPR , 2024.   3\n[38]   Narges   Norouzi,   Idil   Esen   Zulfikar,   Niccol`o   Cavagnero,\nTommie Kerssies, Bastian Leibe, Gijs Dubbelman, and Daan\nde   Geus.   VidEoMT:   Your   ViT   is   secretly   also   a   video   seg-\nmentation model.   In  CVPR , 2026.   1 ,  2 ,  3 ,  5 ,  6 ,  8\n[39]   Maxime   Oquab,   Timoth´ee   Darcet,   Th´eo   Moutakanni,   Huy\nVo,   Marc   Szafraniec,   Vasil   Khalidov,   Pierre   Fernandez,\nDaniel Haziza, Francisco Massa, Alaaeldin El-Nouby, et al.\nDINOv2:   Learning   robust   visual   features   without   supervi-\nsion.   TMLR , 2024.   1 ,  2 ,  3 ,  6 ,  8\n[40]   Olga Russakovsky, Jia Deng, Hao Su, Jonathan Krause, San-\njeev   Satheesh,   Sean   Ma,   Zhiheng   Huang,   Andrej   Karpathy,\nAditya   Khosla,   Michael   Bernstein,   et   al.\nImageNet   large\nscale visual recognition challenge.   IJCV , 2015.   6\n[41]   Oriane   Sim´eoni,   Huy   V.   Vo,   Moritz   Seitzer,   Filippo   Bal-\ndassarre,   Maxime   Oquab,   Camille   Jose,   Vasil   Khalidov,\nMarc Szafraniec, Souyoung Yi, Manu Ramamonjisoa, Fran-\ncisco   Massa,   Daniel   Haziza,   Loubna   Wehrstedt,   Jianyuan\nWang,   Timoth´ee   Darcet,   Th´eo   Moutakanni,   Lorena   Sen-\ntana, Cameron Roberts, Andrea Vedaldi, James Tolan, Jasper\nBrandt, Camille Couprie, Julien Mairal, Herv´e J´egou, Pierre\nLabatut,   and   Piotr   Bojanowski.\nDINOv3.\narXiv   preprint\narXiv:2508.10104 , 2025.   1 ,  2 ,  3 ,  4 ,  5 ,  6 ,  8\n[42]   Jianlin   Su,   Murtadha   Ahmed,   Yu   Lu,   Shengfeng   Pan,   Wen\nBo,   and   Yunfeng   Liu.   RoFormer:   Enhanced   Transformer\nwith   Rotary   Position   Embedding.\nNeurocomputing ,   568,\n2024.   5\n[43]   Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-\nreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, and Illia\nPolosukhin.   Attention is all you need.   In  NeurIPS , 2017.   3\n[44]   Huiyu   Wang,   Yukun   Zhu,   Hartwig   Adam,   Alan   Yuille,   and\nLiang-Chieh   Chen.\nMaX-DeepLab:   End-to-end   panoptic\nsegmentation with mask transformers.   In  CVPR , 2021.   2\n[45]   Mark   Weber,   Jun   Xie,   Maxwell   Collins,   Yukun   Zhu,\nPaul   Voigtlaender,   Hartwig   Adam,   Bradley   Green,   Andreas\nGeiger,   Bastian   Leibe,   Daniel   Cremers,   et   al.   STEP:   Seg-\nmenting and Tracking Every Pixel.   2021.   5\n[46]   Chunlong   Xia,   Xinliang   Wang,   Feng   Lv,   Xin   Hao,   and\nYifeng   Shi.   ViT-CoMer:   Vision   transformer   with   convolu-\ntional   multi-scale   feature   interaction   for   dense   predictions.\nIn  CVPR , 2024.   2\n[47]   Linjie Yang, Yuchen Fan, and Ning Xu.   Video Instance Seg-\nmentation.   In  ICCV , 2019.   5 ,  8\n[48]   Linjie Yang, Yuchen Fan, and Ning Xu.   Video instance seg-\nmentation.   In  ICCV , 2019.   3\n[49]   Qihang   Yu,   Huiyu   Wang,   Siyuan   Qiao,   Maxwell   Collins,\nYukun   Zhu,   Hartwig   Adam,   Alan   Yuille,   and   Liang-Chieh\nChen.   k-means mask transformer.   In  ECCV , 2022.   2 ,  7\n[50]   Tao Zhang, Xingye Tian, Yu Wu, Shunping Ji, Xuebo Wang,\nYuan Zhang, and Pengfei Wan.   DVIS: Decoupled video in-\nstance segmentation framework.   In  CVPR , 2023.   3 ,  8\n[51]   Tao Zhang, Xingye Tian, Yikang Zhou, Shunping Ji, Xuebo\nWang,   Xin   Tao,   Yuan   Zhang,   Pengfei   Wan,   Zhongyuan\nWang,   and   Yu   Wu.   DVIS++:   Improved   Decoupled   Frame-\nwork   for   Universal   Video   Segmentation.   PAMI ,   2025.   3 ,\n8\n[52]   Bolei   Zhou,   Hang   Zhao,   Xavier   Puig,   Sanja   Fidler,   Adela\nBarriuso,   and   Antonio   Torralba.\nScene   parsing   through\nADE20K dataset.   In  CVPR , 2017.   5 ,  7\n[53]   Yikang Zhou,   Tao Zhang,   Shunping Ji, Shuicheng Yan,   and\nXiangtai Li.   Improving video segmentation via dynamic an-\nchor queries.   In  ECCV , 2024.   3 ,  8\n10"
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+{
+  "paper_id": "2603.25507v1.Lightweight_GenAI_for_Network_Traffic_Synthesis__Fidelity__Augmentation__and_Classification",
+  "title": "Lightweight GenAI for Network Traffic Synthesis: Fidelity, Augmentation, and Classification",
+  "sections": [
+    {
+      "section": "Unknown",
+      "text": "1"
+    },
+    {
+      "section": "Fidelity,   Augmentation,   and   Classification",
+      "text": "Giampaolo   Bovenzi,   Domenico   Ciuonzo,   Jonatan   Krolikowski,   Antonio   Montieri,\nAlfredo   Nascita,   Antonio   Pescap`e,   Dario   Rossi"
+    },
+    {
+      "section": "I NTRODUCTION",
+      "text": "The   rapid   evolution   of   Generative   Artificial   Intelligence\n(GenAI)   is   reshaping   communications,   accelerating   the   vision\nof   autonomous   and   self-evolving   networks   [1].   Large   gener-\native   models   have   demonstrated   remarkable   potential   across\ntelecom   domains,   exploiting   massive   datasets   to   learn   com-\nplex   patterns   and   generate   new   content.   Applications   already\nspan   physical-layer   optimization   and   channel   modeling   [2],\nsemantic   communications,   and   network   planning   [1].   While\ntheir   adoption   for   data-centric   network   monitoring   and   man-\nagement   [3]   is   also   blooming,   it   remains   an   open   frontier.\nWithin this landscape, Network Traffic Classification (NTC)\nremains   pivotal   for   network   management   and   security   across\nmobile,   wired,   and   capillary   Internet   of   Things   (IoT)   environ-\nments.   While   accurate   NTC   enables   various   critical   functions,\nsuch   as   anomaly   detection,   quality   of   service   provisioning,\nand   security   policy   enforcement,   traditional   data-driven   solu-\ntions   often   struggle   to   meet   practical   desiderata.   Despite   the\nadvancements   fueled   by   Machine   Learning   (ML),   practical\nconstraints   like   limited   labeled   data,   imbalanced   classes,   and\nstrict   privacy   regulations   act   as   severe   roadblocks.   These\nconstraints   hinder   scalability   and   reduce   robustness   in   real-\nworld   settings   [4]."
+    },
+    {
+      "section": "G.   Bovenzi,   D.   Ciuonzo,   A.   Montieri,   A.   Nascita,   and   A.   Pescap`e   are   with",
+      "text": "the   DIETI,   University   of   Naples   Federico   II,   Italy.   J.   Krolikowski   and   D.\nRossi   are   with   Huawei   Technologies   France   SASU.\nTo   address   these   limitations,   Network   Traffic   Generation"
+    },
+    {
+      "section": "(NTG)   has   been   widely   explored   to   synthesize   realistic   traf-",
+      "text": "fic   data,   enrich   training   sets,   and   strengthen   classification\nrobustness.   Nevertheless,   conventional   approaches   fall   short.\nClassical   data   augmentation   and   traditional   ML-based   NTC\nrely   on   handcrafted   statistical   features,   limiting   adaptability\nto   evolving   traffic   patterns   and   failing   to   capture   rich   tem-\nporal   dependencies.   Meanwhile,   conventional   NTG   solutions\nstruggle with a core trade-off: producing high-fidelity synthetic\ntraffic while maintaining the computational efficiency required\nby   modern   networks   [3].\nIn   this   article,   we   advocate   for   a   shift   toward   lightweight"
+    },
+    {
+      "section": "GenAI architectures  for practical NTG. As depicted in Fig. 1,",
+      "text": "we   propose   a   modular   NTG   pipeline   specifically   tailored   for\nGenAI.   Rather   than   synthesizing   fine-grained   payload   bytes\nusing   massive   foundation   models,   our   approach   generates   a\ncompact traffic representation derived from header fields of the\nfirst packets in each network flow . This choice enables training\nand   operating   advanced   GenAI   models,   namely   Transformers ,\nState   Space   Models   (SSMs) ,   and   Diffusion   Models   (DMs) ,\nunder   a   budget   of   1 – 2   million   parameters ,   ensuring   computa-\ntional   efficiency   without   sacrificing   generation   fidelity.\nTo   validate   this   lightweight   paradigm,   we   formulate   four"
+    },
+    {
+      "section": "Research   Questions   (RQs)   aligned   with   real-world   network-",
+      "text": "ing   challenges   (Fig.   1,   bottom   left).   We   assess   both   generated\ndata   quality   from   different   viewpoints   ( Traffic   Evaluation   –"
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "–   RQ4):"
+    },
+    {
+      "section": "RQ1:",
+      "text": "Can   lightweight   GenAI   faithfully   reproduce   real   traffic\npatterns?"
+    },
+    {
+      "section": "RQ2:",
+      "text": "Can   GenAI   synthetic   traffic   enable   privacy-preserving"
+    },
+    {
+      "section": "RQ3:",
+      "text": "Can   GenAI   synthetic   data   mitigate   training   scarcity   in\nlow-data   regimes?"
+    },
+    {
+      "section": "RQ4:",
+      "text": "Are lightweight GenAI models computationally efficient\nfor   deployment?\nTo   answer   these   RQs,   our   work   provides   an   extensive   eval-\nuation   of   synthetic   traffic   generated   via   lightweight   GenAI\nmodels   by   ( 𝑖 )   defining   a   comprehensive   fidelity   assessment\nprocedure ,   and   tackling   two   pivotal   downstream   NTC   tasks,\nnamely ( 𝑖𝑖 )  synthetic-only training  and ( 𝑖𝑖𝑖 )  data augmentation\nfor   low-data   regimes .   Complementarily,   we   deliver   an   ( 𝑖𝑣 )\nusability   assessment   in   terms   of   space   and   time   complexity .\nExperiments\non\ntwo\npublic\ndatasets— Mirage - 2019\n( 40   mobile   apps)   and   CESNET - TLS22 - 80   ( 80   network\nservices)—demonstrate\nthat\nlightweight\nGenAI\nmodels\nachieve   strong   fidelity,   preserving   both   static   and   temporal"
+    },
+    {
+      "section": "arXiv:2603.25507v1  [cs.NI]  26 Mar 2026",
+      "text": "2\nData\nAugmentation"
+    },
+    {
+      "section": "Extraction",
+      "text": "Packets\nFields"
+    },
+    {
+      "section": "Real Network Traffic",
+      "text": "Mobile apps or\nnetwork services"
+    },
+    {
+      "section": "Token2TrafficMatrix",
+      "text": "Generation conditioned\non app or service\n(e.g., YouTube)"
+    },
+    {
+      "section": "Downstream Task Model",
+      "text": "(e.g., network traffic classifier)"
+    },
+    {
+      "section": "Fidelity Evalutation",
+      "text": "(Few)\nReal\nTraffic\nData\n# packets histogram\n2-gram histogram\n1-gram histogram\nSynthetic Traffic Data\nMarkov transition matrix"
+    },
+    {
+      "section": "Generation Phase Workflow",
+      "text": "Fidelity\nSynthetic\nTraining\nEfficiency"
+    },
+    {
+      "section": "Challenges",
+      "text": "• Generation reliability\n• Privacy concerns\n• Data scarcity\n• Computational overhead"
+    },
+    {
+      "section": "TrafficMatrix2Token",
+      "text": "Fig.   1.\nOverview   of   the   proposed   lightweight   GenAI-based   network   traffic   generation   pipeline   and   real-world   challenges   linked   with   our   Research"
+    },
+    {
+      "section": "Questions .   Training   phase   workflow:   real   network   traces   are   segmented   into   biflows   and   mapped   into   canonical   image-   or   token-based   representations;   these",
+      "text": "serve as inputs to train diffusion, transformer, or state-space generative models.  Generation phase workflow:  trained GenAI models are conditioned to generate\nimage-   or   token-based   representations   for   a   given   traffic   class;   these   are   then   converted   into   traffic   matrices   to   feed   downstream   network   traffic   classifiers;\ngeneration   efficacy   is   assessed   in   terms   of   both   model   and   traffic   evaluation.\ntraffic   patterns.   Compared   to   traditional   NTG   baselines   (e.g.,"
+    },
+    {
+      "section": "CVAE ,   SMOTE,   and   domain-expert   transformations)   and",
+      "text": "DMs,   Transformers   and   SSMs   (i.e.   LLaMA   and   Mamba ,\nrespectively)   exhibit   higher   performance.   Classifiers   trained\nexclusively   on   synthetic   data   reach   up   to   87%   F1-score\non   real   traffic,   while   GenAI-driven   augmentation   improves\nF1-scores   by   up   to   + 40%   in   low-data   regimes.   Last   but   not\nleast,   resource   analysis   reveals   a   clear   trade-off   between\narchitectural\ncomplexity\nand\ncomputational\ncost,\nwith\nTransformer-based\nmodels\noffering\nthe\nmost\nfavorable\nbalance   for   practical   deployment,   combining   a   moderate\nmemory   footprint   with   the   lowest   generation   latency.\nThe   remainder   of   the   article   explores   the   background   and\nrelated   work   shaping   the   current   NTG   landscape   and   presents\nthe proposed lightweight GenAI-based pipeline. It then details\nthe experimental setup and discusses the results addressing the\nfour   RQs,   before   concluding   with   directions   for   future   work.\n3"
+    },
+    {
+      "section": "G ENERATION",
+      "text": "This   section   frames   NTG   evolution,   categorizing   existing\nwork   into   three   phases:   early   statistical   methods   and   con-\nventional   ML   models,   current   large-scale   GenAI   models,   and\nthe   emerging   need   for   lightweight   solutions   addressing   our\nresearch   gap."
+    },
+    {
+      "section": "Method",
+      "text": "tistical   generative   models   (e.g.,   Markov   models)   to   capture\nsequential   dependencies   through   state   transitions.   Though   in-\ntuitive and lightweight, they do not scale well to mid- or long-\nrange   dependencies.   Conventional   ML   models   improved   ex-\npressive power [5]. Variational Autoencoders   learn probabilis-\ntic latent representations that enhance reconstruction accuracy,\nwhile   Normalizing   Flows   provide   exact   likelihood   estimation\nat the cost of a higher computational overhead. Generative Ad-\nversarial Networks, in contrast, focus on high-fidelity sampling\nbut   often   suffer   from   training   instability   and   mode   collapse.\nAlthough   traditional   methods   support   downstream   tasks   like\nintrusion detection and traffic classification [3, 5], they struggle\nto   balance   training   stability,   computational   efficiency,   and\nfidelity   in   modeling   complex,   evolving   traffic   patterns."
+    },
+    {
+      "section": "Recent   GenAI   Advancements.   Since   2021,   NTG   has   been",
+      "text": "impacted   by   the   growing   popularity   of   Transformers ,   DMs ,\nand   SSMs ,   each   employing   distinct   strategies   for   traffic   rep-\nresentation.   Originating   from   Natural   Language   Processing"
+    },
+    {
+      "section": "(NLP),   Transformer-based   models   (e.g.,   GPTs   and   T5 )   [6–",
+      "text": "10]   and   SSMs   (i.e.   Mamba )   [11]   treat   network   traffic   as   token\nsequences,   learning   networking   “grammar”   to   model   flow\ndynamics. Input sequences range from raw packet bytes [8, 11]\nand header fields (e.g., packet sizes, inter-arrival times, and di-\nrections [6]) to  tcpdump / tshark  packet summaries [7, 10].\nTo   further   bridge   the   modality   gap   between   natural   language\nand   network   data,   the   authors   of   [9]   combine   specialized\ntraffic-domain   tokenization   and   multimodal   learning   to   un-\nderstand   expert   instructions   and   learn   task-specific   traffic\nrepresentations simultaneously. Crucially, generation strategies\noperate   either   iteratively,   constructing   flows   “token-by-token”\nakin   to   sentences   in   NLP   [8],   or   natively   synthesize   complete\nsequences   [6,   11].   A   notable   exception   is   the   work   in   [7],\nwhich   generates   Python   code   interacting   with   the   Scapy   li-\nbrary,   acting   more   as   traffic   replay   than   GenAI   synthesis.\nConversely,   DMs,   originating   from   computer   vision,   have\nrecently   gained   traction   across   the   entire   networking   stack,\nfrom   physical-layer   channel   generation   and   resource   manage-\nment [2] to NTG [12, 13]. DMs synthesize traffic by iteratively\ndenoising   random   data   until   structured   patterns   emerge.   This\nrequires   encoding   traffic   into   image-like   representations   [12]\nor   directly   modeling   raw   byte   streams   [13]   to   capture   high-\nfidelity   details.   Although   these   “large”   models   achieve   high\nfidelity,   their   byte-level   processing   and   iterative   generation\noften   make   them   impractical   for   network   deployment."
+    },
+    {
+      "section": "Positioning.   Our   work   diverges   from   the   emerging   trend   of",
+      "text": "massive   network   foundation   models   [10]   to   investigate   the\nfeasibility   of   lightweight   GenAI .   Indeed,   while   foundation\nmodels   offer   generalization   and   fine-tuning   capabilities,   they\nimpose   prohibitive   computational   costs.   Instead,   we   explore\nNTG solutions based on Transformers, SSMs, and DMs under\nstrict   resource   constraints   (i.e.   1 – 2 M   parameters),   prioritiz-\ning   deployability   and   training/inference   speed.   Unlike   related\nworks focused on generating raw packet bytes [11, 13] (which\nincreases   complexity   and   risks   payload   data   leakage),   we\nsynthesize lightweight traffic features constituting the network\nfingerprint   of   applications.   Specifically,   we   model   the   time\nseries   of   payload   lengths   and   packet   directions   ( PL  ×  DIR ),\nakin   to   [6,   8,   12],   but   explicitly   discard   inter-arrival   times,   as\nthese   depend   on   network   conditions   rather   than   application\nlogic   [14].   Furthermore,   we   address   the   lack   of   rigorous\nvalidation   in   prior   studies   by   introducing   advanced   fidelity\nmetrics,   including   PL  ×  DIR   𝑛 -grams   and   Markov   transition\nmatrices, to assess temporal integrity. Finally, targeting practi-\ncal   downstream   tasks   for   NTG,   our   comprehensive   evaluation\ndemonstrates   that   lightweight   GenAI   enables   effective   classi-\nfier training even in ( 𝑎 ) synthetic-only or ( 𝑏 ) low-data regimes,\nensuring   efficiency   for   real-world   deployment."
+    },
+    {
+      "section": "L IGHTWEIGHT  G EN AI-B ASED  NTG P IPELINE   AT  W ORK",
+      "text": "Figure   1   depicts   the   modular   NTG   pipeline   powered   by\nlightweight   GenAI   models,   structured   around   two   distinct\nphases .   The   training   phase   pre-processes   real   network   traces\nto   train   GenAI   models,   while   the   generation   phase   leverages\nthem to synthesize high-fidelity, application-conditioned traffic\ndata."
+    },
+    {
+      "section": "Training   Phase   Workflow.   The   training   phase   ingests   real",
+      "text": "network   traffic   traces   (e.g.,   from   mobile   apps   or   network\nservices).   To   bypass   the   computational   overhead   and   privacy\nrisks   associated   with   raw   payload   utilization,   data   undergoes\ntraffic   segmentation   to   group   packets   into   bidirectional   flows\n(biflows) 1 ,   followed   by   feature   extraction .   This   produces   a\nhighly   efficient   traffic   matrix   representation,   where   rows   are\npackets and columns are packet fields. Specifically, we extract\nthe   Payload   Length   (PL)   and   Packet   Direction   (DIR)   of   the\nfirst   10   packets   of   each   biflow.\nDepending   on   the   GenAI   model,   this   matrix   undergoes   a\nspecific   modality-mapping   before   training:\n•   TrafficMatrix2Image :   Image-based   models,   such\nas   DMs,   interpret   the   (potentially   preprocessed)   traffic\nmatrix   as   a   structured   2D   image.   This   enables   DMs   to\nlearn   complex   2D   patterns   that   encode   both   the   under-\nlying   features   and   the   temporal   dynamics   of   the   flows,\ngenerating   the   entire   traffic   representation   in   a   single,\nnon-autoregressive   step.\n•   TrafficMatrix2Token :\nSequence-based\nmodels,\nsuch   as   Transformers   and   SSMs,   treat   the   matrix   as   a\nmultivariate   time   series,   serializing   it   into   a   sequence   of\ndiscrete   tokens,   where   each   token   encodes   the   vectorial\nvalues   of   the   sequence   steps.   This   enables   autoregressive\ngeneration   that   explicitly   captures   complex   temporal   de-\npendencies   across   packets   and   fields.\n1 A   biflow   is   a   network   flow   consisting   of   packets   flowing   bidirectionally\nbetween   the   same   network   and   transport   endpoints—IPs,   ports,   and   L4\nprotocol.   It   represents   both   directions   of   communication   as   a   single   entity.\n4\nGiven this mapped data, the goal of the selected GenAI models\nis to learn a distribution that faithfully captures the underlying\nstructure   of   the   real   network   traces."
+    },
+    {
+      "section": "Generation   Phase   Workflow.   Once   the   GenAI   models   are",
+      "text": "trained,   they   are   deployed   to   synthesize   new   traffic   samples.\nGeneration   is   conditioned   via   a   <CLASS>   token   prompt,\nwhich   dictates   the   target   network   class   (e.g.,   a   certain   mo-\nbile   app   like   YouTube,   or   a   network   service).   The   GenAI\narchitectures   generate   synthetic   samples   in   their   native   for-\nmats:   2D   images   for   DMs   or   token   sequences   for   Trans-\nformers   and   SSMs.   To   leverage   these   outputs   for   downstream"
+    },
+    {
+      "section": "Image2TrafficMatrix   and   Token2TrafficMatrix",
+      "text": "steps   reconstruct   the   generated   samples   back   into   the   original\ntraffic   matrix   format,   recovering   the   corresponding   synthetic\nPLs   and   DIRs.\nGeneration   efficacy   is   evaluated   from   two   complementary\nviewpoints:\n•   Traffic   Evaluation:   To   assess   generation   fidelity,   we\nquantify the divergence between real and synthetic traffic\ndistributions   using   distance   metrics,   such   as   the   Jensen-\nShannon   Divergence   (JSD).   More   precisely,   we   compute\nthese   distances   across   the   traffic   properties   illustrated\nin   Fig.   1:   packet   count   histograms   for   session-level\nbehavior,   1-gram   histograms   for   marginal   probabilities\nof   PL   and   DIR,   2-gram   histograms   for   temporal   de-\npendencies   across   consecutive   packet   pairs,   and   Markov\ntransition   matrices   for   first-order   transition   dynamics.\nBeyond fidelity, we evaluate the utility of generated traffic\nin   two   practical   downstream   NTC   scenarios:   synthetic-\nonly   training ,   where   classifiers   are   trained   exclusively\non   synthetic   data   and   tested   on   real   samples,   and   data\naugmentation ,   assessing   whether   enriching   a   few   real\nsamples   with   synthetic   ones   boosts   classification   perfor-\nmance.\n•   Model Evaluation:  To validate the deployment feasibility\nof   our   lightweight   GenAI   models,   we   also   profile   their\ncomputational   efficiency   during   training   and   inference,\nevaluating   training   time,   generation   latency,   GPU   mem-\nory   utilization,   and   on-disk   model   footprint.   Addition-\nally,   we   investigate   post-training   quantization   to   assess\nwhether   these   architectures   can   be   further   optimized   for\nresource-constrained   environments."
+    },
+    {
+      "section": "Lightweight GenAI Models.  To implement our NTG pipeline",
+      "text": "under strict computational constraints, we leverage lightweight\nGenAI   models   ( ≈ 1 – 2 M   parameters)   belonging   to   different\nfamilies:\n•   Diffusion   Models   (DMs):   DMs   iteratively   reverse   a\nnoising   process   to   reconstruct   realistic   samples.   We   use\nNetDiffus - NR  [12], a refined architecture operating on\n2D Grammian Angular Summation Field (GASF) images."
+    },
+    {
+      "section": "D   GASF   images   back   to   traffic   sequences,   minimizing",
+      "text": "reconstruction   errors   and   improving   the   quality   of   the"
+    },
+    {
+      "section": "CVAE",
+      "text": "500 / 250\n20\n6\n–\n–\nLLaMA\n160\n320\n4\n8\nMamba\n72\n144\n4\n–\nNetDiffus - NR\n32\n–\n4\n4\n§"
+    },
+    {
+      "section": "#AH   –   Number   of   Attention   Heads;   Repo   –   Repository   (clickable   icon).",
+      "text": "synthesized   traffic   traces. 2\n•   Transformer-based   Models:   Transformers   excel   at   se-\nquence   modeling   by   capturing   temporal   dependencies\nthrough   self-attention.   We   adopt   LLaMA   [15],   a   causal\ndecoder-only   architecture   designed   to   model   long-range\ndependencies   efficiently.   It   leverages   optimized   attention\nmechanisms   to   autoregressively   synthesize   high-fidelity\nsequences   while   maintaining   computational   scalability.\n•   Structured   State-Space   Models   (SSMs):   To   comple-\nment   Transformers,   we   explore   SSMs   designed   for   ef-\nficient   sequence   processing.   We   employ   Mamba   [11],\nwhich   replaces   standard   attention   with   a   selective   state-\nspace   formulation.   Operating   causally,   it   achieves   linear-\ntime   scalability,   well-suited   for   modeling   per-biflow   traf-\nfic   sequences."
+    },
+    {
+      "section": "E XPERIMENTAL  E VALUATION",
+      "text": "This   section   evaluates   our   lightweight   GenAI-based   NTG\npipeline to answer the four RQs formulated in the Introduction.\nFirst,   we   outline   the   experimental   setup,   encompassing   the\nemployed   datasets   and   generation   configurations.   Then,   we\nprovide   the   corresponding   Research   Answers   (RAs),   covering\nthe   traffic   evaluation   for   generation   fidelity   (RA1)   and   down-\nstream   NTC   utility   (RA2   and   RA3),   followed   by   the   model\nevaluation   profiling   computational   efficiency   and   deployment\nfeasibility   (RA4)."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "network   traffic   datasets:   Mirage - 2019 3 ,   containing   40   An-\ndroid   apps   with   ≈ 100 k   biflows,   and   CESNET - TLS22 - 80 ,   a"
+    },
+    {
+      "section": "CESNET - TLS22  subset 4   downsampled to cover the top  80  ser-",
+      "text": "vices and obtain a sample size comparable to  Mirage - 2019 .\nRaw traffic data are pre-processed into sequences of the first  10\nsigned PLs ( ± PLs), where negative and positive values encode\ndownstream   and   upstream   DIRs,   respectively.\nFor   a   fair   cross-architecture   comparison,   all   lightweight\nGenAI   models   are   bounded   to   1 – 2 M   trainable   parameters.\nAlongside   these   models,   we   employ   a   Conditional   Varia-\ntional   Autoencoder   ( CVAE )   baseline   for   class-aware   traffic\ngeneration.   Table   I   summarizes   their   key   hyperparameters.\n2 We exclude heavier byte-level alternatives like  NetDiffusion  [13] from\nour   evaluation,   as   its   massive   scale   (hundreds   of   millions   of   parameters)   and\nsimplified   direction   modeling   contradict   our   lightweight,   time-series   focus.\n3 https://traffic.comics.unina.it/mirage/mirage-2019.html\n4 https://www.liberouter.org/datasets/cesnet-tls22\n5"
+    },
+    {
+      "section": "CVAE",
+      "text": "NetDiffus - NR\nLLaMA\nMamba"
+    },
+    {
+      "section": "JSD Markov",
+      "text": "Leakage\nUniqAlign\n1\n0.75\n0.50\n0.25\n0\nMirage - 2019"
+    },
+    {
+      "section": "JSD Markov",
+      "text": "Leakage\nUniqAlign\n1\n0.75\n0.50\n0.25\n0"
+    },
+    {
+      "section": "CESNET - TLS22 - 80",
+      "text": "Fig.   2.\nRadar   plots   of   6   fidelity   metrics   comparing   real   and   syn-\nthetic   traffic   data   across   generative   models   for   Mirage - 2019   (left)   and"
+    },
+    {
+      "section": "CESNET - TLS22 - 80  (right). For all considered metrics, lower values indicate",
+      "text": "better performance (with  0  being optimal). Note that the axes are scaled with  0\nat the outer edge, meaning that models producing larger polygon areas exhibit\nhigher   generative   fidelity.\nFor   sequence-based   models,   the   vocabulary   assigns   a   unique\ntoken   to   each   signed   PL   value,   resulting   in   2 × PL max   possible\ntokens,   augmented   with   an   <EOS>   token   and   N   <CLASS>\ntokens   ( 𝑁\n=\n40   for   Mirage - 2019   and   𝑁\n=\n80   for"
+    },
+    {
+      "section": "CESNET - TLS22 - 80 ).   To   ensure   fixed-length   inputs   during",
+      "text": "training,   biflows   with   fewer   than   10   packets   are   right-padded\nvia   <PAD>   tokens."
+    },
+    {
+      "section": "Experiments / Results",
+      "text": "assess   the   fidelity   of   generated   traffic   through   the   six   metrics\nreported   in   the   radar   plots   of   Fig.   2.   First,   we   translate   the\nvisual   properties   depicted   in   Fig.   1   into   numerical   metrics   by\ncomputing the macro-averaged JSD between real and synthetic\ndistributions   for   packet   count   histograms   (JSD NumPackets ),   1-\ngram   histograms   (JSD 1-gram ),   2-gram   histograms   (JSD 2-gram ),\nand   Markov   transition   matrices   (JSD Markov ).   Furthermore,   we\nassess   the   realism   and   privacy   of   generated   biflows   via   two\nadditional   metrics   [5]:   (i)   UniqAlign   evaluates   data   realism\nby   computing   the   uniqueness   score   (i.e.   the   proportion   of\ndistinct   sequences)   independently   for   the   real   and   synthetic\ndatasets, and then measuring their absolute difference; a lower\nscore   indicates   that   synthetic   traffic   accurately   replicates   the\nrepetition   patterns   of   real   data.   (ii)   Leakage   directly   quantifies\nthe exact sequence overlap between real and synthetic datasets\nvia   Jaccard   similarity;   a   lower   score   indicates   novel   biflow\ngeneration   rather   than   mere   memorization   of   training   data,\nthereby   mitigating   privacy   leakage   risks.\nFigure   2   summarizes   the   performance   of   generative   mod-\nels.   Since   all   metrics   follow   a   “lower-is-better”   logic,   radar\nplot   axes   are   inverted,   meaning   that   larger   areas   correspond\nto   higher   generation   fidelity.   Results   are   consistent   across\nMirage - 2019  and  CESNET - TLS22 - 80 .  LLaMA  and  Mamba\noutperform   all   alternatives,   achieving   near-zero   JSD   scores\nacross   all   evaluated   traffic   properties.   They   effectively   capture\nboth marginal  PL × DIR  distributions ( 1 -gram) and more com-\nplex   temporal   dependencies   ( 2 -gram   and   Markov).   Notably,\nLLaMA   achieves   the   best   JSD Markov ,   confirming   its   ability   to\nmodel   advanced   sequential   transitions.   Also,   both   sequence-\nbased   models   exhibit   near-optimal   UniqAlign   and   Leakage\nscores.   This   demonstrates   that   their   generated   samples   closely"
+    },
+    {
+      "section": "(GenAI)   Approach",
+      "text": "Mirage - 2019"
+    },
+    {
+      "section": "CESNET - TLS22 - 80",
+      "text": "Train   on   Real\n85 . 84%\n91 . 80%"
+    },
+    {
+      "section": "CVAE",
+      "text": "66 . 73%\n75 . 44%\nNetDiffus - NR\n46 . 83%\n65 . 84%\nLLaMA"
+    },
+    {
+      "section": "%",
+      "text": "Mamba\n76 . 07%\n85 . 09%\nmatch   the   real   traffic   distribution,   synthesizing   highly   diverse\nand   realistic   sequences   without   merely   memorizing   the   train-\ning   set   (with   Mamba   showing   a   slight   edge   over   LLaMA\nin   leakage   mitigation).   Interestingly,   the   CVAE   baseline   suit-\nably   performs   only   on   coarse-grained   properties,   successfully\nmatching   the   biflow   length   distribution   (JSD NumPackets   ≈ 0 ).\nHowever,   its   fidelity   drops   when   capturing   complex   pat-\nterns,   exposing   its   structural   limitations   in   modeling   fine-\ngrained   traffic   dynamics,   though   it   still   limits   data   leakage.\nNetDiffus - NR   consistently   yields   the   lowest   fidelity.   It\nstruggles   to   capture   structural   traffic   properties,   exhibiting   the\nhighest   JSD   scores   (i.e.   the   smallest   polygon   area)   and   failing\nto   accurately   model   even   the   biflow   lengths.   Despite   these\nlimitations, it achieves a moderate  UniqAlign  and successfully\nminimizes   Leakage ."
+    },
+    {
+      "section": "RA2   –   NTC:   Train   on   Synthetic   Traffic.   To   address   RQ2,",
+      "text": "we evaluate generated data utility via a train-on-synthetic, test-\non-real approach. We train a Random Forest ( RF ) downstream\nclassifier   exclusively   on   synthetic   samples   and   evaluate   its\ngeneralization   on   unseen   real   traffic   from   Mirage - 2019   and"
+    },
+    {
+      "section": "CESNET - TLS22 - 80 .   Performance   under   this   setting   reflects",
+      "text": "both   the   fidelity   of   the   synthetic   samples   and   their   alignment\nwith   real-world   class   distributions.\nTable   II   shows   that   RF   models   trained   on   synthetic   traf-\nfic   exhibit   an   expected   performance   gap   relative   to   real-\ndata   training,   reflecting   the   inherent   difficulty   of   fully   repro-\nducing   realistic   traffic   characteristics.   Nevertheless,   LLaMA\nand   Mamba   generated   data   lead   to   consistently   higher   clas-\nsification   performance,   outperforming   the   CVAE   baseline\nand   NetDiffus - NR .   On   Mirage - 2019 ,   the   RF   trained\non   LLaMA   and   Mamba   samples   achieves   78 . 78%   and\n76 . 07%   F1-scores,   respectively,   substantially   reducing   the\ngap   with   the   real-data   upper   bound   ( 85 . 84% ).   Similarly,\non   CESNET - TLS22 - 80 ,   the   synthetic-trained   RF   reaches\n87 . 43%   ( LLaMA )   and   85 . 09%   ( Mamba )   F1-scores,   closely\ntrailing   the   91 . 80%   obtained   with   real   traffic.   In   contrast,\nNetDiffus - NR  severely underperforms across both datasets,\nconfirming   that   this   DM   struggles   to   capture   traffic   character-\nistics   relevant   for   downstream   classification.   To   summarize,\nLLaMA   and   Mamba   offer   the   best   balance   of   generation\nfidelity and utility for downstream tasks, enabling synthetic-to-\nreal   generalization   and   privacy-preserving   NTC   with   minimal\nperformance   degradation,   whereas   NetDiffus - NR   appears\nless   suitable   for   realistic   traffic   synthesis."
+    },
+    {
+      "section": "RA3   –   NTC:   Data   Augmentation.   We   investigate   GenAI-",
+      "text": "6\nreal        LLaMa         Mamba       CVAE\nNetDiffus-NR       SMOTE         Fast Retr.\n5\n10\n20\n50\nPercentage of Real Samples [%]\n40\n50\n60\n70\n80\nF1-Score [%]\nMirage - 2019\n5   10\n20\n50\nPercentage of Real Samples [%]\n72.5\n75.0\n77.5\n80.0\n82.5\n85.0\n87.5\n90.0"
+    },
+    {
+      "section": "CESNET - TLS22 - 80",
+      "text": "Fig.   3.\nF1-score   in   data   augmentation   scenarios   under   low-data   regimes   for\nMirage - 2019   (left)   and   CESNET - TLS22 - 80   (right)   using   an   RF   classifier.\nColors indicate the approach family:  orange  for sequence-based GenAI,  green\nfor   other   generative   models,   red   for   statistical   techniques,   violet   for   expert\ntransformations,   black   for   real-only   training.\ndriven   data   augmentation   under   data-scarcity   conditions,\nwhere   only   a   limited   fraction   of   real   training   samples   is\navailable   to   the   downstream   classifier.   The   GenAI   model\nis   trained   on   the   full   labeled   dataset   and   used   to   generate\nsynthetic   samples.   The   downstream   classifier   is   trained   with\nfew   real   samples   plus   synthetic   data.   This   reflects   a   practical\nuse   case   of   a   network   operator   with   limited   data   leveraging\na   pre-trained   GenAI   model   to   augment   the   training   dataset.\nTo   establish   a   more   extensive   benchmark,   we   compare   GenAI\nmodels against two non-AI baselines: ( 𝑖 )  Fast Retransmit  [14],\na  domain-expert traffic transformation , and ( 𝑖𝑖 )  SMOTE , a  sta-\ntistical   synthesis   technique.   Fast   Retransmit   probabilistically\ndelays   a   single   packet   to   mimic   a   TCP   retransmission,   while\nSMOTE generates new samples by replicating or interpolating\nexisting ones. Unlike GenAI models, which are trained offline\non   the   entire   dataset,   Fast   Retransmit   and   SMOTE   operate\ndirectly   on   the   limited   data   available   at   augmentation   time.\nIn   detail,   we   evaluate   augmentation   utility   by   training   an   RF\nclassifier   on   mixed   real   and   synthetic   traffic.   To   this   end,   we\nupsample   all   classes   with   synthetic   samples   to   match   the   size\nof   the   majority   class   from   the   original   training   set,   yielding   a\nperfectly   balanced   set.\nIn   the   low-data   regime   (i.e.   5 – 20%   of   the   original   train-\ning   set),   Fig.   3   shows   that   GenAI-based   augmentation   pro-\nduces substantial F1-score improvements. On  Mirage - 2019 ,\nLLaMA   and   Mamba   samples   significantly   boost   the   classi-\nfication   performance   compared   to   real-only   training,   rapidly\napproaching   the   F1-scores   achieved   with   abundant   real   data.\nOn   CESNET - TLS22 - 80 ,   the   gains   remain   consistent,   albeit\nmore   moderate   ( 10 – 15%   F1-score   improvement   over   train-\ning   without   augmentation).   Conversely,   traditional   statisti-\ncal   augmentation   methods   exhibit   limited   impact:   SMOTE\ntypically   matches,   or   even   slightly   underperforms,   real-only\ntraining.   Fast   Retransmit   exhibits   more   favorable   behav-\nior,   yielding   moderate   gains   in   the   low-data   regime   on"
+    },
+    {
+      "section": "CESNET - TLS22 - 80 .   Nonetheless,   its   impact   diminishes   on",
+      "text": "Mirage - 2019  and remains strictly below that of  LLaMA  and\nMamba .   The   other   generative   methods   exhibit   markedly   dif-\nferent   behaviors   across   datasets.   CVAE   consistently   improves\nupon real-only training, confirming its ability to model relevant\ntraffic   characteristics.   NetDiffus - NR ,   instead,   shows   lim-"
+    },
+    {
+      "section": "Time",
+      "text": "[ s/epoch ]"
+    },
+    {
+      "section": "GPU",
+      "text": "[ % ]"
+    },
+    {
+      "section": "Mem",
+      "text": "[ MB ]"
+    },
+    {
+      "section": "Time",
+      "text": "[ ms/sample ]"
+    },
+    {
+      "section": "GPU",
+      "text": "[ % ]"
+    },
+    {
+      "section": "Mem",
+      "text": "[ MB ]"
+    },
+    {
+      "section": "on   Disk",
+      "text": "[ MB ]"
+    },
+    {
+      "section": "CVAE",
+      "text": "22 . 568\n18\n379\n0 . 50\n1\n291\n3 . 9\nNetDiffus - NR\n117 . 029\n21\n387\n860 . 67\n19\n355\n4 . 2\nLLaMA\n36 . 810\n20\n393\n31 . 21\n17\n353\n7 . 9\nMamba\n108 . 477\n15\n377\n148 . 52\n14\n359\n15 . 5\nLLaMA - PTQ int8 - WO\n—\n—\n—\n45 . 33\n16\n357\n3 . 5\nLLaMA - PTQ int8 - DA\n—\n—\n—\n990 . 04\n14\n347\n3 . 4\nited   effectiveness,   yielding   marginal   gains   on   Mirage - 2019\nand   systematically   underperforming   on   CESNET - TLS22 - 80 .\nOverall,   sequence-based   GenAI   augmentation   consistently\nachieves   the   best   performance   across   both   datasets,   highlight-\ning   its   clear   superiority   over   traditional   statistical,   expert-\ndriven,   and   other   generative   alternatives."
+    },
+    {
+      "section": "RA4   –   Computational   Efficiency.   Addressing   RQ4,   we",
+      "text": "analyze   computational   efficiency   by   measuring   training   time,\ngeneration latency, GPU utilization, memory consumption, and\non-disk   footprint.   All   generative   models   were   trained   for   10\nepochs   with   500   samples   per   class   ( 5   classes,   batch   size   of   1 )\nusing   a   high-end   datacenter   GPU   ( 48   GB),   and   subsequently\nused   to   generate   100   synthetic   samples   per   class.\nThe   results   reveal   a   clear   trade-off   between   computational\ncost and architectural complexity. During training, times range\nfrom   22 . 6  s/epoch   for   CVAE   to   ≈ 108 – 117  s/epoch   for   mod-\nels   with   more   structured   generative   mechanisms.   Notably,\nLLaMA   stands   out   as   an   exception,   achieving   a   highly   com-\npetitive   36 . 8  s/epoch   despite   its   autoregressive   architecture.\nNetDiffus - NR   exhibits   the   highest   GPU   utilization   dur-\ning   training   ( 21% ),   followed   by   LLaMA   ( 20% )   and   CVAE\n( 18% ),   whereas   Mamba   is   the   most   efficient   ( 15% ).   Mem-\nory   usage   remains   uniform   across   all   models,   ranging   from\n377   MB   ( Mamba )   to   393   MB   ( LLaMA ),   suggesting   that   the\ndominant   memory   cost   is   the   framework   overhead   rather\nthan   the   model   itself.   Generation   latency   varies   substantially."
+    },
+    {
+      "section": "CVAE   is   the   fastest   ( 0 . 50  ms/sample),   followed   by   LLaMA",
+      "text": "( 31 . 21  ms/sample),   whereas   Mamba   and   NetDiffus - NR\nincur   considerably   higher   latencies   ( 148 . 52  ms/sample   and\n860 . 67  ms/sample,   respectively).   Regarding   on-disk   footprint,\nMamba  is by far the largest model at  15 . 5  MB, while the others\nrange   from   3 . 9  MB   ( CVAE )   to   7 . 9  MB   ( LLaMA ).\nLastly,   we   explore   Post-Training   Quantization   (PTQ)   to\nassess   whether   these   models   can   be   further   optimized   for\nresource-constrained   environments.   We   apply   PTQ   exclu-\nsively   to   LLaMA ,   as   its   optimal   trade-off   between   archi-\ntectural   footprint   (substantially   smaller   than   Mamba )   and\ngeneration   fidelity   makes   it   the   ideal   candidate   for   a   tiny-\nfootprint   generative   architecture .   Specifically,   we   investigate\ntwo   int8   PTQ   variants:   weight-only   ( LLaMA - PTQ int8 - WO )\nand   dynamic   activation   ( LLaMA - PTQ int8 - DA ).   The   weight-\nonly   variant   preserves   GPU   memory   consumption   while   more\nthan   halving   the   model   size   (from   7 . 9  MB   to   3 . 5  MB)   and\n7\nreducing   GPU   utilization   from   19%   to   16% .   This   enhance-\nment   comes   at   the   cost   of   a   moderate   increase   in   generation\nlatency ( 45 . 33  ms/sample). Conversely, the dynamic activation\nvariant   further   reduces   the   model   size   ( 3 . 4  MB)   and   GPU\nutilization   ( 14% ),   but   incurs   a   substantial   latency   penalty   ( ≈\n+ 960  ms/sample)   due   to   the   overhead   of   on-the-fly   activation\nquantization. Notably, both quantized  LLaMA  variants achieve\nfidelity metrics and real-traffic classification performance con-\nsistent   with   the   non-quantized   model   up   to   two   significant\nfigures, confirming that quantization introduces no meaningful\ndegradation.   Taken   together,   these   findings   demonstrate   that\nlightweight   GenAI   architectures,   particularly   LLaMA   coupled\nwith   quantization,   can   achieve   the   computational   efficiency\nrequired   for   practical   deployment."
+    },
+    {
+      "section": "C ONCLUSION",
+      "text": "This   work   presented   a   comprehensive   study   on   generative\napproaches   for   network   traffic   synthesis,   focusing   on   fidelity,\ndownstream classification, and deployment feasibility. Overall,\nour   results   highlight   LLaMA   and   Mamba   as   the   most   promis-\ning   models   for   realistic   traffic   synthesis,   privacy-preserving\nclassification,   and   effective   data   augmentation.   In   fidelity\nassessment   (RQ1),   both   models   achieve   near-zero   JSD   scores\nacross   all   properties;   LLaMA   excels   on   Markov   transition\nmatrices,   while   Mamba   shows   a   slight   edge   in   leakage   miti-\ngation.   In   synthetic-only   training   (RQ2),   LLaMA   and   Mamba\nreach   78 . 78%   and   76 . 07%   F1-score   on   Mirage - 2019 ,   and\n87 . 43%   and   85 . 09%   on   CESNET - TLS22 - 80 ,   narrowing   the\ngap   with   real-data   training   to   ≈ 9%   and   ≈ 13% ,   respec-\ntively.   In   data   augmentation   (RQ3),   sequence-based   GenAI\nimproves   classification   by   up   to   + 40%   F1-score   in   the   low-\ndata   regime   ( 5 – 20%   of   real   training   set)   on   Mirage - 2019 ,\nwith   consistent   + 10 – 15%   gains   on   CESNET - TLS22 - 80 .   Re-\ngarding   computational   efficiency   (RQ4),   LLaMA   offers   the\nbest trade-off with  36 . 8  s/epoch training time,  31 . 21  ms/sample\ngeneration   latency,   and   a   7 . 9  MB   on-disk   footprint,   further\nreducible to  3 . 5  MB via  int8  weight-only post-training quan-\ntization, without meaningful   degradation   in   generation fidelity\nor   classification   performance.   Conversely,   diffusion   models\n( NetDiffus - NR ) and baselines ( CVAE ) proved less effective,\neither   incurring   prohibitive   generation   latencies   or   failing   to\ncapture   fine-grained   temporal   dynamics."
+    },
+    {
+      "section": "Future work  will explore adaptive generation strategies and",
+      "text": "hybrid   pipelines   combining   generative   models   with   domain-\nspecific   transformations.   Furthermore,   we   aim   to   evaluate\nthese   lightweight   architectures   in   real-world   deployment   sce-\nnarios,   such   as   integrating   quantized   models   into   edge-based\nintrusion   detection   systems   for   on-the-fly,   privacy-preserving\ntraffic analysis. Lastly, extending this paradigm toward Agentic"
+    },
+    {
+      "section": "AI   powered   by   lightweight   models   represents   a   promising",
+      "text": "frontier to enable autonomous, closed-loop network simulation\nand   proactive   defense   mechanisms."
+    },
+    {
+      "section": "R EFERENCES",
+      "text": "[1]   L.   Bariah   et   al. ,   “Large   generative   AI   models   for   telecom:   The   next   big\nthing?”   IEEE   Commun.   Mag. ,   vol.   62,   no.   11,   pp.   84–90,   2024.\n[2]   X.   Xu   et   al. ,   “Generative   artificial   intelligence   for   mobile   communica-\ntions:   A   diffusion   model   perspective,”   IEEE   Commun.   Mag. ,   2024.\n[3]   G.   Bovenzi   et   al. ,   “Mapping   the   landscape   of   generative   AI   in   network\nmonitoring and management,”  IEEE Trans. Netw. Service Manag. , 2025.\n[4]   G. Aceto  et al. , “AI-powered internet traffic classification: Past, present,\nand   future,”   IEEE   Commun.   Mag. ,   vol.   62,   no.   9,   pp.   168–175,   2023.\n[5]   ——,   “Synthetic   and   privacy-preserving   traffic   trace   generation   using\ngenerative   ai   models   for   training   network   intrusion   detection   systems,”\nJournal   of   Network   and   Computer   Applications ,   p.   103926,   2024.\n[6]   R.   F.   Bikmukhamedov   and   A.   F.   Nadeev,   “Multi-class   network   traffic\ngenerators   and   classifiers   based   on   neural   networks,”   in   Systems   of\nSignals   Generating   and   Proc.   in   the   Field   of   on   Board   Comm. ,   2021.\n[7]   D.   K.   Kholgh   and   P.   Kostakos,   “PAC-GPT:   A   novel   approach   to\ngenerating   synthetic   network   traffic   with   GPT-3,”   IEEE   Access ,   vol.   11,\npp.   114 936–114 951,   2023.\n[8]   J.   Qu   et   al. ,   “TrafficGPT:   Breaking   the   token   barrier   for   efficient   long\ntraffic analysis and generation,”  arXiv preprint arXiv:2403.05822 , 2024.\n[9]   T.   Cui   et   al. ,   “TrafficLLM:   Enhancing   large   language   models   for   net-\nwork   traffic   analysis   with   generic   traffic   representation,”   arXiv   preprint\narXiv:2504.04222 ,   2025.\n[10]   S.   Mayhoub   et   al. ,   “Talk   like   a   packet:   Rethinking   network   traffic\nanalysis   with   transformer   foundation   models,”   IEEE   Commun.   Mag. ,\n2026,   in   press.\n[11]   A.   Chu   et   al. ,   “Feasibility   of   state   space   models   for   network   traffic\ngeneration,”   in   Proc.   of   the   SIGCOMM   Workshop   on   Networks   for   AI\nComputing ,   2024,   pp.   9–17.\n[12]   N. Sivaroopan  et al. , “NetDiffus: Network traffic generation by diffusion\nmodels   through   time-series   imaging,”   Computer   Networks ,   vol.   251,   p.\n110616,   2024.\n[13]   X.   Jiang   et   al. ,   “Netdiffusion:   Network   data   augmentation   through\nprotocol-constrained   traffic   generation,”   Proc.   of   the   ACM   on   Measure-\nment   and   Analysis   of   Computing   Systems ,   vol.   8,   no.   1,   pp.   1–32,   2024.\n[14]   C.   Wang   et   al. ,   “Data   augmentation   for   traffic   classification,”   in   Int.\nConf.   on   Passive   and   Active   Network   Measurement ,   2024,   pp.   159–186.\n[15]   H.   Touvron   et   al. ,   “Llama:   Open   and   efficient   foundation   language\nmodels,”   arXiv   preprint   arXiv:2302.13971 ,   2023."
+    },
+    {
+      "section": "Giampaolo   Bovenzi   (giampaolo.bovenzi@unina.it)   is   an   Assistant   Professor",
+      "text": "at   the   University   of   Napoli   Federico   II.   His   research   concerns   (anonymized\nand   encrypted)   traffic   classification   and   network   security."
+    },
+    {
+      "section": "Domenico   Ciuonzo   [SM]   (domenico.ciuonzo@unina.it)   is   an   Associate   Pro-",
+      "text": "fessor   at   the   University   of   Napoli   Federico   II.   His   research   concerns   data\nfusion,   network   analytics,   IoT,   signal   processing,   and   AI."
+    },
+    {
+      "section": "Jonatan Krolikowski  (jonatan.krolikowski@huawei.com) is a senior research",
+      "text": "engineer at the DataCom Lab of Huawei’s Paris Research Center. His research\ninterests   include   ML-   and   operations   research-driven   optimization   of   real-\nworld   networks   and   the   modeling   and   analysis   of   network-related   problems,\nwith   a   recent   focus   on   time   series   modeling."
+    },
+    {
+      "section": "Antonio   Montieri   (antonio.montieri@unina.it)   is   an   Assistant   Professor   at",
+      "text": "the University of Napoli Federico II. His research concerns network measure-\nments,   traffic   classification,   modeling   and   prediction,   and   AI   for   networks."
+    },
+    {
+      "section": "Alfredo   Nascita   (alfredo.nascita@unina.it)   is   an   Assistant   Professor   at   the",
+      "text": "University   of   Napoli   Federico   II.   His   research   interests   include   Internet\nnetwork   traffic   analysis,   machine   and   deep   learning,   and   explainable   artificial\nintelligence."
+    },
+    {
+      "section": "Antonio   Pescap´e   [SM]   (pescape@unina.it)   is   a   Full   Professor   at   the   Univer-",
+      "text": "sity   of   Napoli   Federico   II.   His   work   focuses   on   measurement,   monitoring,\nand   analysis   of   the   Internet."
+    },
+    {
+      "section": "Dario Rossi  [SM] (dario.rossi@huawei.com) is network AI CTO and director",
+      "text": "of the DataCom Lab at Huawei Technologies, France. He has coauthored 15+\npatents   and   over   200+   papers   in   leading   conferences   and   journals,   and   has\nreceived   9   best   paper   awards,   a   Google   Faculty   Research   Award   (2015),   and\nan   IRTF   Applied   Network   Research   Prize   (2016)."
+    }
+  ]
+}
