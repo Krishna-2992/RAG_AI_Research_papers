@@ -1,0 +1,231 @@
+{
+  "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+  "title": "Agent Factories for High Level Synthesis:",
+  "source_file": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_.json",
+  "chunking": {
+    "strategy": "section_based",
+    "min_tokens": 120,
+    "max_tokens": 300,
+    "overlap_tokens": 35
+  },
+  "chunks": [
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_000",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 0,
+      "total_chunks": 16,
+      "section_path": [
+        "Abstract",
+        "Agent scaling improves exploration. Increasing the"
+      ],
+      "primary_section": "Abstract",
+      "token_count": 269,
+      "text": "—We present an empirical study of how far generalpurpose coding agents—with no hardware-specific training— can go in optimizing hardware designs from high-level algorithmic specifications. Our method, an agent factory , is a twostage pipeline that builds and coordinates multiple autonomous optimization agents. In Stage 1, the factory decomposes a design into sub-kernels, independently optimizes each through pragma and code-level transformations, and solves an Integer Linear Program to assemble globally promising configurations under area constraints. In Stage 2, it spawns N expert agents over the top ILP solutions, each exploring cross-function optimizations— pragma recombination, loop fusion, memory restructuring—that sub-kernel decomposition cannot reach. We evaluate the pipeline on twelve kernels from HLS-Eval and Rodinia-HLS using Claude Code (Opus 4.5/4.6) with AMD Vitis HLS. Scaling from 1 to 10 agents yields a mean 8 . 27 × speedup over baseline, with gains concentrated on harder problems: streamcluster exceeds 20 × and kmeans reaches ∼ 10 × . Across benchmarks, agents consistently recover known hardware optimization patterns without domain-specific training, and winning designs frequently originate from non-top-ranked ILP variants, confirming that global optimization uncovers improvements invisible to sub-kernel search. These findings establish agent scaling as a practical axis for HLS optimization. We provide an anonymized implementation here. Index Terms —Large Language Models (LLMs), Multi-Agent Systems, Agentic AI, Inference-Time Scaling, High-Level Synthesis (HLS), Design Space Exploration (DSE), Hardware Optimization number of agents from 1 to 10 yields a mean 8 . 27 × speedup over baseline, with the largest gains on complex workloads: streamcluster exceeds 20 × , and kmeans reaches ∼ 10 × . Simpler or pipeline-dominated kernels show limited or saturating improvements."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_001",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 1,
+      "total_chunks": 16,
+      "section_path": [
+        "Agents go beyond isolated pragma selection. The best",
+        "Agents recover known hardware optimization pat"
+      ],
+      "primary_section": "Agents go beyond isolated pragma selection. The best",
+      "token_count": 213,
+      "text": "final design does not always originate from the top-ranked ILP variant, indicating that global optimization across function boundaries can uncover improvements not reachable by subkernel search alone. On lavamd , agents achieve ∼ 8 × speedup at ∼ 40 – 60 K area, improving area–latency trade-offs compared to reference implementations. terns without training. Across kernels, agents consistently apply ARRAY_PARTITION to resolve memory bottlenecks and learn that PIPELINE is ineffective unless loop-carried dependencies are first addressed, patterns that align with established HLS expertise. 4. Limitations are significant and inform future work. This is a preliminary study with inherent scope constraints. The benchmark set of twelve kernels does not capture the full complexity of real-world HLS workloads. All experiments use a single model family (Claude Opus 4.5/4.6), a single synthesis tool (Vitis HLS), and a single target architecture (FPGA). Baselines, while systematic, are bounded exhaustive searches over restricted directive sets rather than comparisons against state-of-the-art DSE frameworks such as AutoDSE. Gains are also uneven: simpler kernels saturate early, and under tight area budgets additional agents can increase area without proportional latency improvement. We view this study as a starting point intended to bootstrap a line of investigation that can be extended, through broader benchmarks, stronger baselines, additional models, and diverse target architectures, via community contribution."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_002",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 2,
+      "total_chunks": 16,
+      "section_path": [
+        "M ETHOD",
+        "First, the number of feasible configurations grows com",
+        "Second, optimization decisions interact globally: aggres"
+      ],
+      "primary_section": "M ETHOD",
+      "token_count": 155,
+      "text": "Given an input program written in a high-level language (e.g., C/C++) and a target implementation such as an FPGA platform or ASIC with resource limits, the goal of HLS design space exploration is to find an implementation that minimizes execution latency (in clock cycles) while satisfying area constraints, flip-flops, RAMs, and DSP blocks. The design space consists of all feasible combinations of HLS pragma assignments (e.g., PIPELINE , UNROLL , ARRAY_PARTITION ) and code-level transformations (e.g., loop restructuring, memory reorganization) applied to the input program, where each configuration yields a distinct hardware implementation with different latency and resource utilization. This space is difficult to explore for three reasons: binatorially with the number of loops, arrays, and functions, and each configuration requires an HLS synthesis run that may take minutes, making exhaustive search impractical. sively optimizing one function may exhaust the area budget and prevent improvements elsewhere, so exploration must balance decisions across the full design."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_003",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 3,
+      "total_chunks": 16,
+      "section_path": [
+        "Third, the effect of pragmas is non-linear and some"
+      ],
+      "primary_section": "Third, the effect of pragmas is non-linear and some",
+      "token_count": 378,
+      "text": "times counterintuitive – for example, in the Needleman– Wunsch kernel, fully unrolling the reverse_string loop increased latency from 26 to 71 cycles due to memory port contention, illustrating that more aggressive optimization does not always improve performance. These challenges motivate a two-stage pipeline that decomposes the problem into independent sub-kernel optimization followed by global, design-wide exploration. A. Notation Let the input design D consist of a top-level function that invokes a set of sub-functions F = { f 1 , f 2 , . . . , f K } . We extract a function call graph G = ( F , E ) , where a directed edge ( f i , f j ) ∈E indicates that f i invokes f j . From G we compute the critical path and classify inter-function dependencies as sequential or parallel. For each sub-function f k , we define a variant set V k = { v 0 k , v 1 k , . . . , v M k } , where each variant v m is a distinct optik mization configuration (pragma assignment and/or code transformation). Each variant is characterized by its latency L m k and area A m k , obtained through HLS synthesis after passing a functional correctness check. A binary selection variable x m k ∈{ 0 , 1 } indicates whether variant m of sub-function k is selected. Let A budget denote the global area constraint imposed by the target FPGA platform, and let L baseline denote the latency of the unoptimized design. B. Stage 1: Sub-Kernel Optimization and ILP Selection Stage 1 proceeds in three phases: variant generation, evaluation, and ILP-based selection. TABLE I V ARIANT EXPLORATION STRATEGY PER SUB - FUNCTION . of the unoptimized design. B. Stage 1: Sub-Kernel Optimization and ILP Selection Stage 1 proceeds in three phases: variant generation, evaluation, and ILP-based selection. TABLE I V ARIANT EXPLORATION STRATEGY PER SUB - FUNCTION . Variant Strategy v 0 Baseline: synthesize unmodified code k v 1 Conservative: minimal pragmas, low area k v 2 , 3 Pipeline: PIPELINE II ∈{ 1 , 2 , 4 } k v 4 , 5 Aggressive: pipeline + partial/full UNROLL k v 6 Alternate: ARRAY_PARTITION , INLINE , k closed-form rewrites"
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_004",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 4,
+      "total_chunks": 16,
+      "section_path": [
+        "Phase 1a — Variant Generation: A coordinator agent",
+        "Evaluation"
+      ],
+      "primary_section": "Phase 1a — Variant Generation: A coordinator agent",
+      "token_count": 71,
+      "text": "analyzes the call graph G and spawns one optimizer agent per sub-function f k ∈F . Each optimizer explores M = 7 variants following a structured strategy (Table I). k is evaluated through a pipeline of (i) functional correctness testing against the original design, (ii) HLS synthesis on the target platform, and (iii) extraction of latency L m k and area A m k . Variants that fail correctness are discarded."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_005",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 5,
+      "total_chunks": 16,
+      "section_path": [
+        "Phase 1c — ILP Formulation: Once all optimizer agents"
+      ],
+      "primary_section": "Phase 1c — ILP Formulation: Once all optimizer agents",
+      "token_count": 290,
+      "text": "complete, the coordinator aggregates the surviving variants for each sub-kernel. At this stage, each function f k has multiple candidate implementations with latency L m and area A m k k obtained from HLS synthesis. Selecting the best variant for each function independently is insufficient, because the latency of the overall design depends on how these functions compose in the program execution structure. In HLS designs, functions may execute sequentially, overlap through pipelining, or appear within loop iterations. As a result, the global latency cannot be expressed as a simple sum of individual function latencies. To determine how candidate variants interact in the full design, the coordinator analyzes the program call graph G and derives a latency composition model that reflects the execution structure of the program. For sub-functions on a sequential path, latencies accumulate; for sub-functions that execute in parallel regions, the dominant latency determines the stage duration. The resulting latency model is expressed as { L m k · x m \u0000 \u0001 k } k,m L total ( x ) = h , (1) where h ( · ) encodes the latency composition derived from the call graph (e.g., sums along sequential chains and maxima over parallel branches, with appropriate loop multipliers). The binary decision variable x m k indicates whether variant m of sub-function f k is selected. Using this derived latency model, the coordinator constructs an Integer Linear Programming (ILP) formulation that selects one variant per sub-kernel while respecting the global area constraint: min L total ( x ) x m x m s.t. P k = 1 ∀ f k ∈F , k,m A m k x m x m P k ≤A budget , k ∈{ 0 , 1 } . (2) (x-axis)."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_006",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 6,
+      "total_chunks": 16,
+      "section_path": [
+        "Phase 1c — ILP Formulation: Once all optimizer agents"
+      ],
+      "primary_section": "Phase 1c — ILP Formulation: Once all optimizer agents",
+      "token_count": 267,
+      "text": "m x m s.t. P k = 1 ∀ f k ∈F , k,m A m k x m x m P k ≤A budget , k ∈{ 0 , 1 } . (2) (x-axis). Increasing the number of agents extends the Pareto front toward lower latency and more favorable area–latency trade-offs across most benchmarks, lavamd kmeans A 4 A 8 A 10 A 1 A 8 A 2 A 10 Speedup vs baseline A 2 A 4 Baseline Baseline 10k 20k 30k 40k 50k 60k 70k 80k 90k 0.0 10k 20k 30k 40k 50k 60k 70k cfd streamcluster A 10 A 10 A 8 Speedup vs baseline A 8 A 4 A 4 A 2 A 2 A 1 A 1 Baseline Baseline 0.0 20k 40k 60k 80k 100k 0.0 20k 40k 60k 80k 100k 120k nw present A 8 A 8 A 10 A 4 Speedup vs baseline A 10 A 1 A 2 A 4 A 2 A 1 Baseline Baseline 8.0k 8.5k 9.0k 9.5k 10k 0.0 2.0k 4.0k 6.0k 8.0k 10k 12k Area Area Baseline Baseline optimization Sub-kernel optimization with the strongest gains on harder problems such as streamcluster, leukocyte, and NW. Because multiple variant combinations can satisfy the area constraint while achieving similar latency, the solver is used to enumerate the top- N feasible solutions ranked by L total , denoted S = { s 1 , s 2 , . . . , s N } . Each solution corresponds to a distinct global configuration of sub-kernel implementations and serves as a starting point for the next phase of full-design optimization."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_007",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 7,
+      "total_chunks": 16,
+      "section_path": [
+        "Stage 2: Global Optimization via Agent Scaling",
+        "Pragma composition: new combinations of HLS prag",
+        "Compute optimization: algebraic simplifications or"
+      ],
+      "primary_section": "Stage 2: Global Optimization via Agent Scaling",
+      "token_count": 348,
+      "text": "Stage 2 takes the candidate set S from the ILP solver and attempts to improve each candidate through holistic, designwide optimization. A coordinator agent spawns N exploration agents , one per candidate s i ∈S . Each agent receives the full design instantiated with the sub-kernel variants specified by s i and explores optimization paths that operate across function boundaries. These paths are categorized as: mas applied jointly across multiple functions, not explored during Stage 1. 2. Code restructuring: loop reordering, loop fusion, or function inlining at the global level. closed-form transformations spanning multiple sub-kernels. Each agent iteratively generates modified designs, verifies correctness, synthesizes via HLS, and records (latency, area) hotspot leukocyte A 8 15.0 A 10 12.5 A 10 A 8 10.0 A 4 A 2 A 2 7.5 A 4 A 1 A 1 5.0 2.5 Baseline Baseline 0.0 0.0 25k 50k 75k 100k 125k 150k 175k 200k 0.0 50k 100k 150k 200k 250k aes kmp A 4A 8 A 8 A 2 A 10 A 10 A 1 A 4 A 2 A 1 Baseline Baseline 0.0 20k 40k 60k 80k 100k 1.0k 1.2k 1.4k des sha256 A 8 A 10 3.0 A 8 A 4 A 2 2.5 A 4 A 10 A 2 2.0 A 1 A 1 1.5 Baseline Baseline 1.0 0.0 1.0k 2.0k 3.0k 4.0k 5.0k 6.0k 0.0 2.0k 4.0k 6.0k 8.0k 10k 12k 14k Area Area Agent scaling Pareto-optimal point Pareto front pairs. Let R i denote the set of all valid designs explored by agent i . The final output of the pipeline is: D ∗ = A ( d ) ≤A budget . arg min L ( d ) s.t. (3) d ∈ S N i =1 R i D. Algorithm Summary two-stage pipeline. By parameterizing Stage 2 with N , we study how increasing the number of parallel exploration agents affects solution quality. Larger N expands the explored region of the design space, increasing the probability of discovering lower-latency implementations. We evaluate N ∈{ 1 , 2 , 4 , 8 , 10 } in Section IV."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_008",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 8,
+      "total_chunks": 16,
+      "section_path": [
+        "R ESULTS",
+        "EAN SPEEDUP OVER BASELINE AS AGENTS SCALE"
+      ],
+      "primary_section": "R ESULTS",
+      "token_count": 310,
+      "text": "A. Experimental Setup We evaluate the two-stage pipeline on twelve HLS kernels: six HLS-Eval benchmarks from prior work [12] (AES, DES, KMP, NW, PRESENT, SHA256) and six from RodiniaHLS [18] (lavamd, kmeans, hotspot, leukocyte ( lc_dilate ), cfd ( cfd_step_factor ), streamcluster). Results are averaged over 5 runs; when HLS reports latency as a range, we use the midpoint. All experiments use Claude Code (Opus 4.5/4.6) with AMD Vitis HLS. a) Baselines: For HLS-Eval kernels, we use a bounded exhaustive baseline that enumerates per-loop pragma configurations for each sub-kernel. Each loop selects one of five options: no directive, PIPELINE (II ∈ 1 , 2 ), or UNROLL TABLE II 1 → 2 2 → 4 4 → 8 8 → 10 5.26 × 5.81 × 7.66 × 8.27 × Speedup (+5.9%) (+13.5%) (+31.8%) (+7.9%) (factor ∈ 2 , 4 ), capturing common loop optimizations with a manageable branching factor. The search space grows as 5 n for n loops, so we cap variants per function to keep synthesis tractable. Each variant is synthesized to obtain latency and area, and an ILP selects one variant per sub-kernel to minimize latency under a global area constraint. We design the baseline to operate at the pragma level, isolating directive search and enabling a controlled evaluation of the additional benefits from higher-level transformations (e.g., code restructuring, memory layout, array partitioning) introduced by the LLM agent. This provides a strong pragma-only reference, though not globally optimal due to the bounded search. For Rodinia-HLS kernels, we compare against reference optimized implementations (e.g., tiling, pipelining, doublebuffering) and report the best feasible design. All designs must satisfy area and timing constraints. We use a fixed clock of 10 ns (35 ns for streamcluster ); infeasible baseline configurations are adjusted by reducing pragma factors, and designs violating area or timing are discarded. B. Results on FPGA using Vitis HLS"
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_009",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 9,
+      "total_chunks": 16,
+      "section_path": [
+        "Sub-Kernel Optimization",
+        "ILP Variant Selection: Following sub-kernel optimiza"
+      ],
+      "primary_section": "Sub-Kernel Optimization",
+      "token_count": 190,
+      "text": "Across the twelve benchmarks, Stage 1 improves latency over the baseline while remaining within the area budget; SHA256 is the exception, where performance stays comparable to baseline (Fig. 2). Two recurring patterns emerge without any HLSspecific training. First, agents consistently identify ARRAY_PARTITION as the highest-impact directive, yielding the largest gains in AES, DES, and PRESENT by resolving memory bottlenecks. Second, agents learn that PIPELINE applied in isolation is often ineffective—or even harmful—unless memory bandwidth and loop-carried dependencies are addressed first. tion, a coordinator agent composes the surviving variants into a full design. It analyzes the function call graph, derives a latency composition model that accounts for sequential and parallel execution paths, and formulates the ILP objective (Eq. 2) to minimize global latency under an area constraint. Table III validates the agent’s inferred latency structure on two synthetic benchmarks (SYN5, SYN6) from [12] and two real kernels (NW, AES). The agent correctly captures parallel compositions—minimizing the maximum latency for concurrent modules (SYN5)—and mixed parallel-sequential structures (SYN6). Because this formulation estimates global latency from isolated sub-kernel synthesis, it cannot capture cross-function effects such as inter-kernel memory reuse or global pipeline TABLE III"
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_010",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 10,
+      "total_chunks": 16,
+      "section_path": [
+        "FORMULATES ILP CONSTRAINTS TO MINIMIZE LATENCY UNDER AN AREA",
+        "L MC + L KE + L INIT"
+      ],
+      "primary_section": "FORMULATES ILP CONSTRAINTS TO MINIMIZE LATENCY UNDER AN AREA",
+      "token_count": 263,
+      "text": "BUDGET . D ATAFLOW GRAPH BORROWED FROM [12]. DFG Agent-formulated ILP & constraints min L iter · Loop count s.t. L iter ≥ L F + L O , L iter ≥ 2 L F , L iter ≥ L E + L F P P ≤ v x v = 1 , v A v x v A budget , x v ∈{ 0 , 1 } One variant per function; A v is variant area. min 5( M F O + 2 L E ) s.t. M F O ≥ L F , M F O ≥ L O P P ≤ v x v = 1 , v A v x v A budget , x v ∈{ 0 , 1 } L F , L O denote latencies of F and O. min( L F M + L T B + L RS ) P P ≤ v x v = 1 , v A v x v A budget , x v ∈{ 0 , 1 } L F M , L T B , L RS denote module latencies. min 11 L ARK + 10 L SB + 10 L SR + P P ≤ v x v = 1 , v A v x v A budget , x v ∈{ 0 , 1 } L ∗ denotes module latency. scheduling. Exhaustive enumeration would resolve this gap but is computationally prohibitive. The ILP stage therefore serves as an efficient filter that narrows the search space, producing a ranked set of N starting points for Stage 2."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_011",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 11,
+      "total_chunks": 16,
+      "section_path": [
+        "Global Optimization"
+      ],
+      "primary_section": "Global Optimization",
+      "token_count": 264,
+      "text": "across all twelve benchmarks, and Table II reports the mean best speedup over 5 runs as agents scale from N =1 to N =10 . We organize the findings below by the character of the scaling behavior. a) Strong scaling on complex workloads: The largest gains appear on benchmarks with rich optimization landscapes. Streamcluster benefits most dramatically: speedup climbs from ∼ 6 × to over 20 × as agents scale, with each increment exposing new regions of the Pareto front. Cfd , hotspot , and kmeans follow a similar pattern, reaching 7 – 10 × speedup with progressively better area–latency trade-offs. Among the larger Rodinia kernels, lavamd reaches ∼ 8 × speedup at moderate area. b) Intermediate and non-monotonic behavior: For PRESENT, NW, and DES, scaling improves latency overall but the progression is not strictly monotonic: in several cases (e.g., PRESENT, DES), N =8 yields Pareto-optimal designs not dominated by N =10 , reflecting stochastic exploration effects. Leukocyte presents a distinct pattern: its top speedup ( ∼ 14 – 15 × ) originates from a baseline optimization that agents do not replicate, though they do improve designs in the ∼ 7 – 10 × Latency improvement factor over baseline versus number of expert agents across six benchmarks. Improvements range from 1.4 × to 14.5 × and generally increase with agent count, typically plateauing after four agents. range. c) Saturation under simplicity or tight resource budgets: Simpler or resource-constrained kernels exhibit diminishing returns. KMP saturates early ( ∼ 10 – 12 × ), and AES shows similar performance for N =8 and N =10 ."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_012",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 12,
+      "total_chunks": 16,
+      "section_path": [
+        "Global Optimization"
+      ],
+      "primary_section": "Global Optimization",
+      "token_count": 129,
+      "text": "under simplicity or tight resource budgets: Simpler or resource-constrained kernels exhibit diminishing returns. KMP saturates early ( ∼ 10 – 12 × ), and AES shows similar performance for N =8 and N =10 . NW , which operates near its area limit ( ∼ 10 K), illustrates a related effect: N =8 slightly outperforms N =10 , suggesting that under tight area budgets additional agents may explore configurations that trade area for diminishing latency gains. d) Global optimization beyond sub-kernel decomposition: Across benchmarks, the best final designs do not always originate from the top-ranked ILP variant. This confirms that Stage 2 optimization—through pragma recombination and code-level transformations applied across function boundaries—can exploit cross-function interactions that the ILP model, which estimates global latency from isolated subkernel synthesis, cannot capture."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_013",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 13,
+      "total_chunks": 16,
+      "section_path": [
+        "Generalization to ASICs"
+      ],
+      "primary_section": "Generalization to ASICs",
+      "token_count": 291,
+      "text": "The approach presented in this paper uses HLS tools with FPGA as the target device to evaluate and guide the agentbased optimization flow. While the approach itself is toolagnostic, and can use ASIC-targeted HLS and logic synthesis tools to evaluate and guide the flow, we show that both latency improvements and area correlate well to an ASIC-mapped design as well. To measure how well area reported by HLS tool correlates with ASIC-mapped area, we compute correlation between HLS-reported synthesis area and logic area obtained from the open-source logic synthesis tool ABC, across the six HLS-Eval benchmarks. The strength of the correlation varies: SHA256 ( r =0 . 992 ), KMP ( r =0 . 964 ), and NW ( r =0 . 859 ) show strong near-linear relationships, indicating that HLS area estimates are generally reliable proxies for silicon cost on these kernels. AES ( r =0 . 757 ) shows moderate-to-strong correlation, while DES ( r =0 . 603 ) is moderate. PRESENT ( r =0 . 277 ) exhibits weak correlation, suggesting that HLS area estimates may be less reliable for this design. This variation is because HLS tool area estimates tend to be inaccurate for designs with more memory instances. pared to the baseline design) on the y-axis and number of agents on the x-axis. Latency is computed as the product of number of cycles obtained from the HLS timing report and an estimate for clock period obtained from ABC synthesis report. The latency value for different number of agents is then normalized by the latency of the baseline design (without agentic optimization) to get the latency reduction factor on the y-axis. Across the six benchmarks, latency can be improved by a factor ranging from 1.4X to 14.5X."
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_014",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 14,
+      "total_chunks": 16,
+      "section_path": [
+        "Generalization to ASICs"
+      ],
+      "primary_section": "Generalization to ASICs",
+      "token_count": 340,
+      "text": "by the latency of the baseline design (without agentic optimization) to get the latency reduction factor on the y-axis. Across the six benchmarks, latency can be improved by a factor ranging from 1.4X to 14.5X. For all benchmarks, latency improvements increase with increasing number of expert agents, typically plateauing after four expert agents. D. Discussion and Future Work This work presents an initial exploration of agent scaling for HLS design space exploration. Our results demonstrate that Agent Factories , when applied to High Level Synthesis domain yield several consistent trends: increasing the number of agents improve exploration and extend the Pareto frontier on several kernels. This suggests that agent scaling, analogous to inference-time scaling in LLMs can serve as a powerful mechanism for navigating large hardware designs spaces without explicit training or handcrafted heuristics. While these results are encouraging, the current study can be significantly expanded in scope. Our evaluation spans twelve benchmarks and focuses on Vitis HLS with logic-level validation through ABC, without yet incorporating broader benchmark suites (e.g., HLSyn) or comparisons to advanced automated DSE frameworks such as AutoDSE. Several directions follow naturally from this observation: incorporating learning (e.g., fine-tuning or reinforcement learning) to improve generalization and efficiency; expanding evaluation across broader benchmarks and toolchains, including downstream synthesis; and integrating advanced agentic strategies (e.g., memory, replay, coordination) to improve search quality. In addition, we are working towards several baselines comparisons with traditional optimization methods as well for HLS design space exploration to determine the differentiation and tradeoffs involved with Agent Factoties. coordination) to improve search quality. In addition, we are working towards several baselines comparisons with traditional optimization methods as well for HLS design space exploration to determine the differentiation and tradeoffs involved with Agent Factoties. This research demonstrates a powerful result that taken together, the direction point toward a broader vision in which agent-based systems, combined with learning and deeper integration into hardware toolchains, act as scalable optimizers for complex design spaces, reducing the need for manual expertise and enabling more automated hardware design. A PPENDIX A"
+    },
+    {
+      "chunk_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_::chunk_015",
+      "paper_id": "2603.25719v1.Agent_Factories_for_High_Level_Synthesis__How_Far_Can_General_Purpose_Coding_Agents_Go_in_Hardware_Optimization_",
+      "title": "Agent Factories for High Level Synthesis:",
+      "chunk_index": 15,
+      "total_chunks": 16,
+      "section_path": [
+        "S ← top- N feasible ILP solutions;"
+      ],
+      "primary_section": "S ← top- N feasible ILP solutions;",
+      "token_count": 64,
+      "text": "8 forall s i ∈S in parallel do launch exploration agent g i ; R i ← g i . T ARGETED R EFINEMENT ( D , s i , A max ) ; 11 end 12 D ∗ ← arg min d ∈∪ i R i L ( d ) s.t. A ( d ) ≤A max ; 13 return D ∗ ;"
+    }
+  ]
+}

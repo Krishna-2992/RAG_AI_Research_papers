@@ -1,0 +1,91 @@
+{
+  "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+  "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+  "source_file": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection.json",
+  "chunking": {
+    "strategy": "section_based",
+    "min_tokens": 120,
+    "max_tokens": 300,
+    "overlap_tokens": 35
+  },
+  "chunks": [
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_000",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 0,
+      "total_chunks": 6,
+      "section_path": [
+        "Experimental Setup"
+      ],
+      "primary_section": "Experimental Setup",
+      "token_count": 300,
+      "text": "Many current approaches to fake news detection frame the task as a classification problem, relying primarily on supervised learning to distinguish between individual real and fake news. In most cases, the broader context in which misinformation circulates, and the sources from which it originates, are not taken into account. Although several efforts have been made to construct extensive datasets, the available resources remain limited in scope and diversity, posing significant challenges for supervised approaches. In our experiments, we used 10 of the most representative datasets available in the literature. Further, we evaluated 12 methods spanning the main families of approaches, from classical ML to Transformer-based architectures, up to cross-domain specific architectures. All selected approaches were chosen based on their prevalence and established effectiveness within the fake news detection literature. We designed four groups of experiments both to assess the ability of the selected methods to solve the task on different datasets, and to evaluate their generalization capability on unseen data. Dataset-Specific This group of experiments reflect the standard approach, where the goal is, for each ⟨ algorithm, dataset ⟩ pair, to find the optimal parameters for the algorithm to fit the dataset. This allows us to assess the performance of each classifier on each specific dataset. LLMs Datasets Cross Domain x x x x x x ✓ x x x x x x x x x x x x ✓ ✓ Cross-Dataset This group aims to evaluate the generalization capability of each classifier trained on a single dataset/domain. Each classifier is trained on a specific dataset using the optimal parameters identified in the Dataset-Specific experiments, and is then tested on all the remaining datasets. In this group, we use all available data from a dataset for training, regardless of the original splits. Natively multi-domain approaches are excluded from this evaluation."
+    },
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_001",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 1,
+      "total_chunks": 6,
+      "section_path": [
+        "Experimental Setup"
+      ],
+      "primary_section": "Experimental Setup",
+      "token_count": 293,
+      "text": "and is then tested on all the remaining datasets. In this group, we use all available data from a dataset for training, regardless of the original splits. Natively multi-domain approaches are excluded from this evaluation. For decoder-only LLMs, in zero-shot settings we only evaluate the model on the test sets, without any conditioning beyond the prompt chosen via the Dataset-Specific experiments. In few-shot settings, we randomly sample examples from the training dataset for in-context learning, and test on the remaining ones. Note that the same in-context examples are used for all models. Mixed-Training/Single-Test With this group of experiments, we attempt to simulate a multi-domain scenario. Each classifier is trained on a global training set composed of portions of data sampled from all the datasets. We evaluate the trained model in two ways: first, independently on each dataset, considering as test set only the examples not used for the training; second, we test on a global test set , built by aggregating equal portions of data from each of the datasets. Here, we also include a model from the literature specifically designed for multidomain and cross-domain. For decoder-only models, in the zero-shot setting, the training phase is bypassed entirely and the models are evaluated directly on the test sets. In the few-shot setting, we randomly sample examples from the training dataset, and evaluate the models on the remaining ones. Note that, as in the previous group, the in-context examples are identical across all models. Leave-One-Dataset-Out Finally, this group of experiments allows us to simulate real-world scenarios in which a single model is used to classify cross-domain news. Each classifier is trained, in turn, on a mixture of all of the datasets except one, using the optimal parameters determined in the first group of experiments."
+    },
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_002",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 2,
+      "total_chunks": 6,
+      "section_path": [
+        "Experimental Setup"
+      ],
+      "primary_section": "Experimental Setup",
+      "token_count": 126,
+      "text": "single model is used to classify cross-domain news. Each classifier is trained, in turn, on a mixture of all of the datasets except one, using the optimal parameters determined in the first group of experiments. The classifiers are then tested on the dataset/domain not seen during training. Here as well we include a model from the literature specifically designed for multi-domain and cross-domain settings. For decoder-only models, in the zero-shot setting, the training phase is bypassed and the models are evaluated directly on the test sets. In the few-shot setting, the in-context examples were randomly selected from the 9-dataset training set. The set of examples was kept consistent across all models. All the experiments assume a binary categorization of data into either fake or real news."
+    },
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_003",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 3,
+      "total_chunks": 6,
+      "section_path": [
+        "Approach"
+      ],
+      "primary_section": "Approach",
+      "token_count": 96,
+      "text": "In this section, we provide a detailed description of all the approaches evaluated in our study, including their architectures, feature representations, training procedures, and implementation frameworks. This methodological overview ensures that each experimental result can be directly traced back to a clearly specified model configuration. For our experiments we selected 12 methods which represent a mix of traditional ML classifiers and state-of-the-art DL techniques, including Transformer models. These methods were selected based on their prevalence, established effectiveness, and availability. We summarize the approaches in 1 The repository will be made available upon acceptance of the paper."
+    },
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_004",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 4,
+      "total_chunks": 6,
+      "section_path": [
+        "Conclusion"
+      ],
+      "primary_section": "Conclusion",
+      "token_count": 274,
+      "text": "In this paper, we presented a large-scale empirical comparison of 12 fake news detection approaches across 10 datasets, focusing on the critical challenge of cross-domain generalization. Our experiments, spanning in-domain, cross-dataset, multi-domain, and leave-one-dataset-out scenarios, reveal a fundamental flaw in the standard classification paradigm. Our study quantifies the severity of this issue: while fine-tuned transformers such as DeBERTa excel in-domain settings, achieving a median F1-score of 0.86, cross-dataset evaluation demonstrates that they fail to generalize to unseen topics. Specifically, performance drops substantially in cross-dataset settings, whit a median F1-score of 0.53. Our findings identify two distinct paths to improving robustness. On the one hand, specialized cross-domain architectures (i.e., MERMAID) proved highly effective in generalizing to new domains, though they are data-hungry and require large, diverse training datasets to perform adequately. On the other hand, decoder-only LLMs in zero-shot and few-shot settings could offer a data-efficient alternative, by demonstrating remarkable stability. This is exemplified by Qwen3-32B (ZS), which maintained a consistent median F1score across the in-domain (0.77), cross-dataset (0.77), multi-domain (0.75), and leave-one-out (0.77) scenarios, showing only slight fluctuation. Finally, this work highlights the need to explore novel paradigms for fake news detection. Rather than relying solely on generic features and isolated news, we argue that the focus should be shifted to more realistic scenarios where the context in which a news appears plays a crucial role. Our future research will focus on strengthening the evaluation framework along three complementary directions that extend the analyses presented in this study. A first direction involves analyzing the information divergence between a piece of fake news, the factual events from which it originates, and its surrounding contextual elements."
+    },
+    {
+      "chunk_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection::chunk_005",
+      "paper_id": "2603.25501v1.An_Experimental_Comparison_of_the_Most_Popular_Approaches_to_Fake_News_Detection",
+      "title": "An Experimental Comparison of the Most Popular Approaches to Fake News Detection",
+      "chunk_index": 5,
+      "total_chunks": 6,
+      "section_path": [
+        "Conclusion"
+      ],
+      "primary_section": "Conclusion",
+      "token_count": 161,
+      "text": "directions that extend the analyses presented in this study. A first direction involves analyzing the information divergence between a piece of fake news, the factual events from which it originates, and its surrounding contextual elements. This includes the exploration of retrieval-augmented strategies, which may help mitigate current generalization limitations by grounding model predictions in external evidence and by reducing the impact of uncontrolled exposure or potential leakage. A second direction concerns the integration of multimodal and socially grounded information. Since communication is inherently multimodal, extending cross-dataset evaluations to settings that combine textual, visual, and contextual metadata could provide a more comprehensive understanding of model robustness and help address semantic inconsistencies that arise from heterogeneous annotation protocols. A third direction focuses on the growing challenge posed by LLM-generated content. As generative models become increasingly capable, evaluating the robustness of detection systems against both human- and LLM-generated fake and real news becomes essential for assessing their reliability in realistic, rapidly evolving information environments."
+    }
+  ]
+}

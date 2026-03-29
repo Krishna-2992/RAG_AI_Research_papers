@@ -1,0 +1,341 @@
+{
+  "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+  "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+  "source_file": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments.json",
+  "chunking": {
+    "strategy": "section_based",
+    "min_tokens": 120,
+    "max_tokens": 300,
+    "overlap_tokens": 35
+  },
+  "chunks": [
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_000",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 0,
+      "total_chunks": 25,
+      "section_path": [
+        "Abstract"
+      ],
+      "primary_section": "Abstract",
+      "token_count": 190,
+      "text": "Indoor monocular semantic scene completion (MSSC) is notably more challenging than its outdoor counterpart due to complex spatial layouts and severe occlusions. While transformers are well suited for modeling global dependencies, their high memory cost and difficulty in reconstructing fine-grained details have limited their use in indoor MSSC. To address these limitations, we introduce A d a S F o r m e r , a serialized transformer framework tailored for indoor MSSC. Our model features three key designs: (1) an Adaptive Serialized Transformer with learnable shifts that dynamically adjust receptive fields; (2) a CenterRelative Positional Encoding that captures spatial information richness; and (3) a Convolution-Modulated Layer Normalization that bridges heterogeneous representations between convolutional and transformer features. Exten* Corresponding authors. Lingdong Kong 3 * Ziping Zhao 1 * 3 National University of Singapore (c) Performance ISO Fixed Group (Previous Work) 51.33 Ours 47.11 32.50 31.25 Adaptive Group (This work) SC-IoU SSC-mIoU OOM GPU Memory (G) ！ Ours 2^11 2^12 2^13 2^14 2^15 The number of voxels Ours Vanilla Transformer sive experiments on NYUv2 and Occ-ScanNet demonstrate that ASFormer achieves state-of-the-art performance. The code is publicly available at: https://github.com/ alanWXZ/AdaSFormer ."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_001",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 1,
+      "total_chunks": 25,
+      "section_path": [
+        "Introduction"
+      ],
+      "primary_section": "Introduction",
+      "token_count": 268,
+      "text": "Monocular semantic scene completion (MSSC) has recently gained traction in the context of autonomous driving [ 3 , 4 , 76 , 82 , 101 ], as it enables holistic 3D understanding of complex outdoor environments from a single image [ 39 , 68 ]. In contrast, indoor MSSC remains underexplored despite its fundamental importance to indoor scene perception, supporting applications in robot navigation, 3D reconstruction, and spatial understanding [ 5 , 16 , 29 – 31 , 79 , 80 , 83 , 84 ]. Indoor scenes differ substantially from outdoor settings [ 27 , 28 , 41 , 42 , 46 , 81 , 86 ]. Rather than featuring regular road layouts and open views, they contain intricate and multi-level spatial structures, including overlapping ceilings, walls, and furniture, with frequent occlusions and high object density [ 6 , 37 , 75 ]. This complexity demands not only accurate local geometry but also strong global contextual reasoning to infer the geometry and semantics of occluded regions [ 74 ]. Most existing approaches heavily rely on convolutional architectures [ 64 , 74 , 90 , 91 ]. However, their inherently limited receptive fields prevent them from modeling longrange dependencies effectively, while enlarging kernels in 3D incurs prohibitive cubic computational cost [ 9 , 14 ]. Early convolutional layers propagate information solely within local neighborhoods, while deeper layers operate at reduced resolutions, leading to spatial information loss and degraded completion quality [ 17 , 40 , 52 , 94 ]. Modeling long-range dependencies is therefore essential, making transformer architectures a natural choice [ 20 , 50 , 66 ]."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_002",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 2,
+      "total_chunks": 25,
+      "section_path": [
+        "Introduction"
+      ],
+      "primary_section": "Introduction",
+      "token_count": 282,
+      "text": "spatial information loss and degraded completion quality [ 17 , 40 , 52 , 94 ]. Modeling long-range dependencies is therefore essential, making transformer architectures a natural choice [ 20 , 50 , 66 ]. Yet, applying transformers directly to dense 3D volumes remains computationally expensive and memoryintensive [ 22 , 38 , 39 , 53 , 77 ], especially for high-resolution indoor scenes [ 63 , 91 ]. To address these challenges, we design A d a S F o r m e r , a hybrid framework that unifies convolutional and transformer modules, each serving complementary roles. The transformer operates on voxels containing valid features to capture global context, while the convolution focuses on local feature propagation and refinement. Our framework introduces three core designs: (1) Adaptive Serialized Attention (ASA), which employs learnable shifts to dynamically adjust receptive fields and coordinate features across layers; (2) Center-Relative Positional Encoding (CRPE) , which encodes spatial information richness relative to the scene center; and (3) Convolution-Modulated Layer Normalization (CMLN), which harmonizes feature statistics between convolutional and transformer representations. As illustrated in Fig. 2 , given a single RGB image, a 2D encoder first extracts features and estimates depth, which are projected into 3D space via surface projection [ 45 ]. Within the 3D encoder, alternating transformer and convolutional modules jointly capture global context and complete 3D geometry, followed by a lightweight decoder that integrates multi-scale features to produce final semantic scene completion (SSC) results. Our main contributions are summarized as follows: • We propose A d a S F o r m e r to capture long-range dependencies while maintaining efficiency through complementary feature propagation, substantially reducing both memory footprint and computational overhead."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_003",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 3,
+      "total_chunks": 25,
+      "section_path": [
+        "Adaptive Se",
+        "Center-Relative Positional Encod"
+      ],
+      "primary_section": "Adaptive Se",
+      "token_count": 48,
+      "text": "• We introduce three novel components, rialized Attention , ing , and 3 Convolution-Modulated Layer Normalization , which collectively enhance receptive-field adaptability, spatial reasoning, and cross-module feature alignment. • Extensive experiments on the NYUv2 and OccScanNet datasets demonstrate that our approach achieves state-ofthe-art performance against popular MSSC methods."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_004",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 4,
+      "total_chunks": 25,
+      "section_path": [
+        "Related Work"
+      ],
+      "primary_section": "Related Work",
+      "token_count": 268,
+      "text": "Monocular Semantic Scene Completion (MSSC). Scene completion tasks predicts both voxel occupancy and semantic labels, providing holistic 3D scene understanding [ 36 , 42 , 70 , 72 , 73 , 75 ]. The pioneering SSCNet [ 99 ] introduced indoor SSC using depth maps, later extended to RGB-D inputs [ 8 , 33 , 34 , 45 , 73 ] and outdoor perception [ 48 , 49 , 58 , 78 , 85 , 88 , 102 ]. Recent monocular SSC approaches [ 26 , 32 , 35 , 39 , 62 , 69 , 71 , 93 , 95 , 97 , 98 , 101 ] further advance the task by relying solely on RGB images. For indoor scenarios, where lightweight deployment is critical, several representative works have emerged: MonoScene [ 4 ] bridges 2D-3D features via Line-of-Sight Projection; NDC-Scene [ 90 ] introduces normalized device coordinates to reduce depth ambiguity; ISO [ 91 ] enhances voxel learning with dual projection; and MonoMRN [ 74 ] adopts a masked recurrent refinement design. Most indoor MSSC methods are CNN-based, achieving efficiency but limited global reasoning. In contrast, our approach employs an adaptive serialized transformer to enlarge receptive fields while maintaining low computational cost. Single-View 3D Reconstruction. Recovering 3D geometry from a single RGB image has long been studied for both objects and scenes [ 25 , 47 ]. Early works reconstruct individual objects using explicit [ 1 , 11 , 15 ] or implicit [ 54 , 55 , 57 ] representations, while more recent efforts address full scene reconstruction [ 10 , 44 , 96 ]."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_005",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 5,
+      "total_chunks": 25,
+      "section_path": [
+        "Related Work"
+      ],
+      "primary_section": "Related Work",
+      "token_count": 236,
+      "text": "objects using explicit [ 1 , 11 , 15 ] or implicit [ 54 , 55 , 57 ] representations, while more recent efforts address full scene reconstruction [ 10 , 44 , 96 ]. Holistic reconstruction methods [ 12 , 13 , 43 , 87 , 92 ] recover the scene as a whole, often guided by depth estimation [ 4 , 39 , 91 ] and processed through encoder–decoder architectures. Compositional approaches [ 18 , 19 , 44 , 100 ] reconstruct objects separately before assembling them via layout and pose estimation, as seen in DepR [ 96 ] and ComboVerse [ 10 ]. These reconstruction paradigms provide geometric priors and structural insights closely related to semantic scene completion. Serialization-Based Approaches. The recent serializationbased transformers [ 7 , 51 , 67 , 77 ] convert irregular 3D data into ordered sequences to enable efficient attention while preserving spatial locality. Representative works include OctFormer [ 67 ], which partitions point clouds via sorted octree keys; FlatFormer [ 51 ], which reduces padding through flattened window grouping; and PTv3 [ 77 ], which applies shuffle-based ordering with conditional positional encoding. Although designed mainly for 3D segmentation and detection, these methods demonstrate the efficiency of serialized attention for large-scale 3D modeling. Our work extends this idea to semantic scene completion through adaptive serialization with learnable shifts and center-relative positional encoding, improving long-range reasoning under sparse 3D layouts."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_006",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 6,
+      "total_chunks": 25,
+      "section_path": [
+        "Method",
+        "RGB that captures only a partial 3D scene, monocular se"
+      ],
+      "primary_section": "Method",
+      "token_count": 243,
+      "text": "In this section, we first provide an overview of our method. Next, we give a brief preliminary to voxel serialization (Sec. 3.1 ). Following this, we delve into the AdaSFormer network, including its three proposed key designs: Adaptive Serialized Attention (Sec. 3.2.1 ), Center-Relative Positional Encoding (Sec. 3.2.2 ), and the Conv-Modulated Layer Normalization (Sec. 3.2.3 ). Lastly, we introduce the loss function for model training (Sec. 3.2.4 ). Problem Formulation. Given a single-view RGB image mantic scene completion aims to predict the volumetric occupancy of the entire scene. Each voxel is assigned a semantic label C i with i ∈ [0 , 1 , . . . , N ] , where N is the number of object categories and C 0 denotes empty space. Overall Network Architecture. From a single RGB image, 2D features are first extracted using EfficientNet [ 65 ], and the corresponding depth map is estimated using an offthe-shelf method [ 89 ]. Leveraging the estimated depth together with the camera’s intrinsic and extrinsic parameters, the 2D features are projected into 3D space. The resulting 3D representations are subsequently processed by a transformer-based encoder, consisting of a series of ASFormer blocks, followed by a decoder to produce the final Semantic Scene Completion (SSC) outputs. We refrain from employing a transformer-based architecture at the decoding stage, as the number of non-empty voxels increases significantly. In this setting, convolutional decoding offers higher efficiency than transformer-based decoding, effectively reducing computational overhead."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_007",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 7,
+      "total_chunks": 25,
+      "section_path": [
+        "Preliminary of Voxel Serialization"
+      ],
+      "primary_section": "Preliminary of Voxel Serialization",
+      "token_count": 283,
+      "text": "In this section, we present preliminaries of serializationbased transformers. We introduce a voxel serializationbased method that enables 3D networks to capture a sufficiently large and high-resolution receptive field in the early stage while keeping memory consumption manageable, which is crucial for scene completion tasks. Serialization. Serialization transforms irregular or highdimensional spatial data into a structured sequential format suitable for attention-based modeling as shown in Fig. 3 (a). Specifically, given an input 3D voxel X ∈ R C × D × H × W , we employ a space-filling curve ( e.g. , Z curve and Hilbert curve) to linearize the volumetric representation along a continuous path. This preserves the local spatial proximity of neighboring elements, allowing the attention mechanism to operate efficiently while maintaining spatial correlations. After serialization, the data is represented as a sequence of tokens S = [ s 1 , s 2 , . . . , s N ] , where N = D × H × W . Local Grouping. The core purpose of serialization is to enable more effective local grouping. Since the computational complexity of the attention mechanism grows quadratically with the input sequence length ( O ( N ^2 ) ), reasonable data grouping is crucial for processing large-scale 3D data. Local grouping divides the serialized sequence into fixedlength groups, each containing G consecutive tokens. Attention is computed only within each group, which captures local dependencies while significantly reducing computational cost. Formally, the sequence is divided into M = \\l ceil N / G \\rceil groups, where ⌈·⌉ denotes the ceiling operation (i.e., rounding up), ensuring that all tokens are included: \\ d o t s , S_M], \\quad S_i \\in \\mathbb {R}^{G \\times C}."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_008",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 8,
+      "total_chunks": 25,
+      "section_path": [
+        "Preliminary of Voxel Serialization"
+      ],
+      "primary_section": "Preliminary of Voxel Serialization",
+      "token_count": 217,
+      "text": "ceil N / G \\rceil groups, where ⌈·⌉ denotes the ceiling operation (i.e., rounding up), ensuring that all tokens are included: \\ d o t s , S_M], \\quad S_i \\in \\mathbb {R}^{G \\times C}. S = [ S _ 1 , S _ 2 , (1) Under this grouping, the computational complexity per group is O ( G ^2 ) , leading to a total complexity of O ( M \\ c d o t G ^ 2 ) = O(N \\cdot G) , which is much lower than the full attention complexity O ( N ^2 ) . Compared with conventional window-attention [ 50 ] based grouping methods, serialization-based grouping for 3D data has the following advantages: 1) Avoids voxel padding overhead: 3D point clouds are often sparse, and in window-based grouping, the number of voxels in each window usually varies. Padding is required to unify the length, which wastes significant computational resources. In contrast, serialization-based grouping can evenly divide the non-empty voxels without additional padding, reducing redundant computation. 2) Larger effective receptive field: Window-based grouping includes empty voxels, limiting the local receptive field. Given the same number of tokens per group, serialization-based grouping removes empty voxels, allowing attention to operate over a wider range of valid spatial regions and capturing richer local contextual information."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_009",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 9,
+      "total_chunks": 25,
+      "section_path": [
+        "AdaSFormer: Towards Efficient MSSC"
+      ],
+      "primary_section": "AdaSFormer: Towards Efficient MSSC",
+      "token_count": 17,
+      "text": "Several stacked AdaSFormer blocks serve as the 3D network encoder, modeling global dependencies with moderate memory consumption."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_010",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 10,
+      "total_chunks": 25,
+      "section_path": [
+        "Adaptive Serialized Attention (ASA)"
+      ],
+      "primary_section": "Adaptive Serialized Attention (ASA)",
+      "token_count": 280,
+      "text": "Although the serialized transformer reduces GPU memory consumption by serializing patches, the obtained patches remain fixed once a specific serialization strategy is chosen. However, the grouping scheme also greatly affects the receptive field range. As illustrated in Figure 3 , different starting points can significantly alter the receptive field: in some cases, the partitioned voxel range may fully cover a single object, thereby capturing its overall structure more effectively; in other cases, the voxel range may simultaneously include multiple objects and their spatial relationships. Such variations directly influence the model’s representational capacity at both local and global levels, as well as its ability to capture semantic correlations. Therefore, obtaining an appropriate shift is crucial for serialized attention. However, existing serialized attention a 2D-to-3D projection module, and a 3D network. (b) Adaptive Serialized Transformer (ASF): This is the core of our method. A set of ASF blocks forms the encoder of the 3D network. The 3D voxels are adaptively converted into 1D patches, which are then augmented with center-relative positional encoding. These patches are processed through standard self-attention and feed-forward layers. Through the proposed Convolution-Modulated Layer Normalization (CMLN), the heterogeneous features from the transformer and convolutional layers are bridged. The resulting features are then fed into a DDR block for scene completion. (c) Convolution-Modulated Layer Normalization (CMLN): Modulates features to integrate transformer and convolutional representations effectively. (d) Center-Relative Positional (b) Adaptive Serialized Transformer (ASF) (a) Overall Pipeline 2D Encoder 3D-1D CRPE 2D-3D Transform Pool+MLP 3D Encoder w. ASF 3D Dec 3D Decoder . . . (c) CMLN Encoding: Enhances the richness of input information by modeling the relative spatial relationships of patches. methods do not consider the influence of patch shifts."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_011",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 11,
+      "total_chunks": 25,
+      "section_path": [
+        "Adaptive Serialized Attention (ASA)"
+      ],
+      "primary_section": "Adaptive Serialized Attention (ASA)",
+      "token_count": 258,
+      "text": "w. ASF 3D Dec 3D Decoder . . . (c) CMLN Encoding: Enhances the richness of input information by modeling the relative spatial relationships of patches. methods do not consider the influence of patch shifts. For window-based attention mechanisms, although prior works such as the Swin Transformer [ 50 ] introduce the concept of window shifting, the shift size remains fixed and nonlearnable. Moreover, since the Swin Transformer operates on 2D patches, its potential shift range is inherently constrained by the spatial window size. In contrast, serialized attention operates along a 1D voxel sequence, offering a broader and more flexible space for shift adjustment. This property makes it particularly suitable for incorporating learnable, data-driven shifts that can dynamically adapt the serialization starting point to better capture object structures and their spatial relationships. Assuming a patch size of P , we introduce K learnable parameters to model the spatial offsets within each voxel group after serialization. Each parameter corresponds to a discrete shift value uniformly spaced by P/K ; that is, the k -th parameter represents a shift of k · ( P/K ) . During training, these learnable offsets are optimized to capture the most informative spatial alignment of serialized voxels with respect to object boundaries or scene layouts, thereby improving the contextual consistency of the representation. Straight-Through Gumbel-Softmax. By leveraging the differentiable relaxation provided by Gumbel-Softmax, the start point can be trained end-to-end. During training, we compute a straight-through estimator to allow gradient flow while maintaining discrete selections. Let l denote the logits and τ the temperature."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_012",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 12,
+      "total_chunks": 25,
+      "section_path": [
+        "Adaptive Serialized Attention (ASA)"
+      ],
+      "primary_section": "Adaptive Serialized Attention (ASA)",
+      "token_count": 277,
+      "text": "relaxation provided by Gumbel-Softmax, the start point can be trained end-to-end. During training, we compute a straight-through estimator to allow gradient flow while maintaining discrete selections. Let l denote the logits and τ the temperature. The soft Gumbel-Softmax output y soft and the hard one-hot output y hard are computed as: 1D-3D CMLN Norm MHA DDR FFN γ , β Yaw Pitch Atten DDR . . . (d) CRPE _ { \\ m t r m {soft}} = \\mathrm {softmax}\\Big (\\frac {\\mathbf {l} + \\mathbf {g}}{\\tau }\\Big ), \\quad \\mathbf {g} \\sim \\mathrm {Gumbel}(0,1), \\ma t hbf {y} h (2) a d } }} = \\mathrm {one\\_hot}\\Big (\\arg \\max _i \\mathbf {y}_{\\mathrm {soft},i}\\Big ). \\ma t hbf {y _{\\ mat r m {h ar (3) h The straight-through (ST) Gumbel-Softmax output is then given by: \\ m a thbf { y}_{ \\ m athr m {ST}} = \\mathbf {y}_{\\mathrm {hard}} + \\mathbf {y}_{\\mathrm {soft}} - \\mathbf {y}_{\\mathrm {soft}}.\\mathrm {detach}(). (4) In this formulation, the forward pass uses the discrete y hard , while the gradient during backpropagation flows through y soft , enabling differentiable learning with discrete selections. Temperature Annealing Strategy. We design a temperature annealing strategy to allow the network to better learn discrete selections. Specifically, the temperature τ in the Gumbel-Softmax is gradually decreased during training to control the discreteness of the sampling. At epoch t , τ is updated as: u _ t = \\ max \\ Big ( \\t a \\ tau _{\\min }, \\, \\tau _{\\mathrm {init}} \\cdot \\exp (-\\alpha t)\\Big ), (5) where τ init is the initial temperature, τ min is the minimum temperature, and α is the annealing rate."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_013",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 13,
+      "total_chunks": 25,
+      "section_path": [
+        "Center-Relative Positional Encoding (CRPE)"
+      ],
+      "primary_section": "Center-Relative Positional Encoding (CRPE)",
+      "token_count": 297,
+      "text": "Since our algorithm adopts a hybrid architecture of CNN and Transformer, where the CNN effectively captures local positional information, the model has a reduced reliance figure indicate the locations of objects in the spatial domain. (b)-(e) illustration of Z-order serialization with shifts of 0, 3, 6, and 9 (from left to right). Different shift settings significantly affect the coverage and overlap between adjacent patches, especially for large patch sizes. CV CV CV (a) (b) (c) on traditional positional encoding. Inspired by work [ 2 ], which demonstrates that the spatial distribution of input information in 3D space has a significant impact on SSC performance. Based on this observation, we design a positional encoding scheme to model this information richness. Specifically, we compute the yaw and pitch angles between each point and the scene center to describe their relative spatial relationships. This encoding enables the model to perceive the spatial relations between different regions and the scene center, allowing it to identify areas that are more likely to contain key structural or semantic information, and thereby allocate attention and feature weights more effectively. We compute the scene center c as the mean coordinate of all occupied voxels: \\ m a th b f { c } = \\ {i=1}^{M} \\mathbf {p}_i \\cdot \\mathbf {1}(v_i > 0)} {\\sum _{i=1}^{M} \\mathbf {1}(v_i > 0)}, (6) f r a c { \\ s u m _ where p i = ( x i , y i , z i ) denotes the center coordinate of the i -th voxel, v i is its occupancy value, 1 ( v i > 0) is an indicator function that equals 1 if the voxel is occupied and 0 otherwise, and c represents the mean coordinate of all occupied voxels, i.e. , the scene center."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_014",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 14,
+      "total_chunks": 25,
+      "section_path": [
+        "Center-Relative Positional Encoding (CRPE)"
+      ],
+      "primary_section": "Center-Relative Positional Encoding (CRPE)",
+      "token_count": 266,
+      "text": "( v i > 0) is an indicator function that equals 1 if the voxel is occupied and 0 otherwise, and c represents the mean coordinate of all occupied voxels, i.e. , the scene center. The yaw angle (horizontal rotation around the vertical axis) for each voxel and for the grid center is defined as: \\ theta ^ i = \\ o p eratorname {atan2}(d^i_x, d^i_y), (7) \\ theta ^ c = \\ o p eratorname {atan2}(d^c_x, d^c_y), (8) where d ^i_ x and d ^i_ y are the x and y components of the vector \\protect \\mathbf {d}^ i . The yaw difference between voxel i and the center is then given by: \\ D e l t a \\theta ^i = \\theta ^i - \\theta ^c. (9) Similarly, the pitch angle (vertical inclination) for each voxel and for the grid center are defined as: o i a p e r a t o r n a m e { \\ phi ^ = tan2}\\Big (d^i_z, \\sqrt {(d^i_x)^2 + (d^i_y)^2}\\Big ), \\ (10) CV CV (d) (e) o c a p e r a t o r n a m e { \\ phi ^ = \\ tan2}\\Big (d^c_z, \\sqrt {(d^c_x)^2 + (d^c_y)^2}\\Big ), (11) and the pitch difference is computed as: \\ D e l t a \\phi ^i = \\phi ^i - \\phi ^c. (12) After obtaining ∆ ϕ and ∆ θ , we concatenate them into a single feature vector, which is then processed by a multilayer perceptron (MLP). The resulting output is used as a bias added to the serialized attention."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_015",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 15,
+      "total_chunks": 25,
+      "section_path": [
+        "Convolution-Modulated Layer Norm (CMLN)"
+      ],
+      "primary_section": "Convolution-Modulated Layer Norm (CMLN)",
+      "token_count": 253,
+      "text": "Since transformers and convolutional networks extract fundamentally different types of features, directly interleaving these modules can cause learning difficulties and limit performance gains. To address this, we propose ConvModulated Layer Normalization motivated by [ 56 ]. Specifically, after voxel features X voxel are serialized and processed by Serialized Attention, they are modulated through ConvModulated Layer Normalization before being fed into the DDR module, a lightweight component designed for semantic scene completion (SSC) refinement. The Conv-Modulated Layer Normalization can be defined as follows: \\t e x t { CMLN} ( h _ i \\mid X _ { \\ t e x { v o x el}}) = \\gamma (X_{\\text {voxel}}) \\odot \\frac {h_i - \\mu _i}{\\sigma _i} + \\beta (X_{\\text {voxel}}), t (13) where h i denotes the features to be normalized, µ i and σ i are the mean and standard deviation computed over the feature dimension, and γ ( X voxel ) , β ( X voxel ) are functions ( e.g. , small MLPs) that produce the normalization parameters from the voxel features. This design allows the network to adaptively modulate feature statistics based on the input context. After the Convolution-Modulated Layer Normalization, the features are fed into the DDR block [ 33 ], a lightweight 3D convolutional module designed for semantic scene completion. The Adaptive Serialized Attention captures global by [ 4 ]. The Best and 2nd Best scores from each metric are highlighted in Orange and Teal, respectively. SC IoU (%) ■ window ■ Ceiling ■ Floor ■ Wall"
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_016",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 16,
+      "total_chunks": 25,
+      "section_path": [
+        "Loss Function",
+        "Experiments"
+      ],
+      "primary_section": "Loss Function",
+      "token_count": 119,
+      "text": "Our method is trained end-to-end from scratch by applying cross-entropy loss, geometric affinity loss, and semantic affinity loss [ 4 ]: \\mat h r m { \\mat h c al { L}_ total} = \\mathcal {L}_\\mathrm {ce} + \\mathcal {L}_\\mathrm {scal}^{\\mathrm {sem}} + \\mathcal {L}_\\mathrm {scal}^{\\mathrm {geo}} , (14) where L scal denotes the Scene-Class Affinity Loss proposed by MonoScene [ 4 ]. We conduct experiments on the widely used NYUv2 dataset [ 63 ] as well as the large-scale indoor dataset OccScanNet [ 91 ]. The proposed approach is compared against state-of-the-art methods, and both experimental results and ablation studies are thoroughly analyzed. In addition, we present qualitative visualizations to further illustrate the effectiveness of our proposed method."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_017",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 17,
+      "total_chunks": 25,
+      "section_path": [
+        "Experimental Setup"
+      ],
+      "primary_section": "Experimental Setup",
+      "token_count": 100,
+      "text": "Datasets. The NYUv2 dataset [ 63 ] consists of 1 , 449 depth images captured with a Kinect sensor across diverse indoor scenes, split into 795 for training and 654 for testing. Following SSCNet [ 64 ], we employ the 3D voxel annotations provided by [ 59 ] and adopt the category mappings defined in [ 21 ]. The Occ-ScanNet dataset [ 91 ] serves as a largescale benchmark for indoor 3D semantic scene completion. It contains 45 , 755 training frames and 19 , 764 validation frames, with scenes voxelized into grids of 60 × 60 × 36 ."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_018",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 18,
+      "total_chunks": 25,
+      "section_path": [
+        "Experimental Setup"
+      ],
+      "primary_section": "Experimental Setup",
+      "token_count": 398,
+      "text": "as a largescale benchmark for indoor 3D semantic scene completion. It contains 45 , 755 training frames and 19 , 764 validation frames, with scenes voxelized into grids of 60 × 60 × 36 . SSC mIoU (%) ■ furniture ■ objects ■ chair ■ table ■ sofa ■ bed ■ tvs 3 . 94 32 . 03 15 . 44 6 . 57 0 . 02 14 . 51 4 . 39 15 . 88 6 . 93 35 . 87 22 . 92 11 . 11 0 . 71 15 . 90 6 . 45 18 . 15 10 . 64 42 . 29 29 . 21 13 . 88 9 . 38 23 . 83 8 . 19 22 . 91 13 . 72 48 . 19 36 . 11 15 . 13 15 . 22 27 . 96 12 . 94 26 . 94 15 . 83 49 . 57 39 . 87 17 . 17 24 . 57 31 . 00 14 . 96 29 . 03 18 . 35 50 . 01 40 . 82 18 . 25 25 . 90 34 . 08 17 . 67 31 . 25 17 . 66 44 . 60 31 . 02 19 . 60 17 . 22 32 . 90 18 . 31 30 . 73 17 . 60 48 . 60 39 . 70 17 . 60 24 . 70 33 . 40 17 . 20 29 . 90 23 . 93 53 . 89 44 . 52 16 . 65 23 . 85 35 . 97 18 . 67 32 . 50 Objects Chair Bed Table Win TV Floor Furn. Sofa Ceil Wall . (b) GT (d) AdaSFormer (a) RGB input (c) w/o ASFormer dataset [ 91 ]. 35 . 97 18 . 67 32 . 50 Objects Chair Bed Table Win TV Floor Furn. Sofa Ceil Wall . (b) GT (d) AdaSFormer (a) RGB input (c) w/o ASFormer dataset [ 91 ]. Introducing AdaSFormer significantly improves the model’s capability to capture spatial and semantic relationships, leading to more complete and coherent object completion. Both NYUv2 and Occ-ScanNet are annotated with the same 12 semantic classes: one for empty (free space) and eleven for typical indoor categories, including ceiling , floor , wall , window , chair , bed , sofa , table , television , furniture , and miscellaneous objects ."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_019",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 19,
+      "total_chunks": 25,
+      "section_path": [
+        "Evaluation"
+      ],
+      "primary_section": "Evaluation",
+      "token_count": 190,
+      "text": "evaluation protocol of SSCNet [ 64 ]. In semantic scene completion (SSC), performance is measured using the intersection over union (IoU) between predicted and ground-truth voxel labels for each semantic class, and the overall accuracy is reported as the mean IoU (mIoU) across all classes. For scene completion (SC), voxels are classified into empty or occupied, and performance is evaluated using IoU. Implementation details. We implement our approach using the PyTorch framework. The model is optimized with stochastic gradient descent (SGD), starting from an initial learning rate of 0 . 1 for NYUv2 and 0 . 003 for Occ-ScanNet, which is adjusted according to the polynomial learning rate policy. We train the network for 100 epochs. The output 3D feature maps have dimensions of 60 × 36 × 60 for NYUv2 and 60 × 60 × 36 for Occ-ScanNet. All experiments are conducted on an NVIDIA A100 GPU. presented by [ 4 ]. The Best and 2nd Best scores from each metric are highlighted in Orange and Teal, respectively. Symbol * denotes the results obtained using their official code trained on the Occ-ScanNet dataset. ■ ceiling ■ floor ■ wall"
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_020",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 20,
+      "total_chunks": 25,
+      "section_path": [
+        "Method"
+      ],
+      "primary_section": "Method",
+      "token_count": 239,
+      "text": "Venue IoU (%) 33 . 39 6 . 96 32 . 97 14 . 41 TPVFormer [ 23 ] CVPR’23 40 . 91 20 . 70 42 . 00 23 . 40 17 . 40 GaussianFormer [ 24 ] ECCV’24 41 . 60 15 . 17 44 . 71 22 . 41 12 . 55 MonoScene [ 4 ] CVPR’22 42 . 16 19 . 88 41 . 88 22 . 37 16 . 98 ECCV’24 ISO [ 91 ] 42 . 52 18 . 90 49 . 30 24 . 80 18 . 00 SurroundOCC [ 76 ] ICCV’23 54 . 63 37 . 66 57 . 34 40 . 51 29 . 49 A d a S F o r m e r Ours tive Serialized Attention configurations. nents in the proposed framework. SC-IoU (%) ↑ SSC-mIoU (%) ↑ SC-IoU (%) ↑ 47 . 43 28 . 68 47 . 43 Baseline Baseline 50 . 11 ( +2 . 68 ) 30 . 98 ( +2 . 30 ) + ASA 49 . 76 ( +2 . 33 ) + VanillaShift + CRPE 50 . 71 ( +0 . 60 ) 31 . 66 ( +0 . 68 ) 50 . 87 ( +1 . 11 ) + GumbelShift + CMF 51 . 33 ( +0 . 62 ) 32 . 50 ( +0 . 84 ) + AnnealedShift 51 . 33 ( +0 . 46 )"
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_021",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 21,
+      "total_chunks": 25,
+      "section_path": [
+        "Comparisons with State of the Arts"
+      ],
+      "primary_section": "Comparisons with State of the Arts",
+      "token_count": 195,
+      "text": "Quantitative Comparisons. The results of the quantitative comparisons are presented in Tables 1 and 2 . It can be seen that our method achieves the best performance on the SSC task. On the NYU v2 dataset, our approach surpasses the current state-of-the-art method, ISO, by 1 . 25 mIoU, achieving a total of 32 . 50 mIoU. Similarly, on the OCC-ScanNet dataset, our method outperforms the best existing method, ISO, by 14 . 50 mIoU, reaching 45 . 33 mIoU. Qualitative Assessments. The Fig. 5 presents the visual comparison results of our method, the Baseline, and the ISO method on the NYU v2 dataset. It can be observed that our approach achieves superior performance in the Semantic Scene Completion (SSC) task. Benefiting from the proposed AdaSFormer model, our method is able to obtain a sufficiently large receptive field in the early stages of the network, enabling more effective capture of global spatial structures and enhancing the completeness and semantic consistency of the overall reconstruction. As shown in Fig. 5 , it is evident that the increased receptive field facilitates more accurate scene completion and enhances the ability to distinguish between different objects in the scene."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_022",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 22,
+      "total_chunks": 25,
+      "section_path": [
+        "Ablation Study"
+      ],
+      "primary_section": "Ablation Study",
+      "token_count": 228,
+      "text": "We present exhaustive ablation experiments on the NYUv2 dataset [ 63 ] to evaluate the effectiveness of our method from several perspectives, focusing on key components such as Adaptive Serialized Attention (ASA) and CenterRelative Positional Encoding (CRPE). Due to space constraints, more details and visualizations are provided in the ■ furniture ■ window mIoU (%) ■ objects ■ chair ■ table ■ sofa ■ bed ■ tvs 9 . 10 24 . 01 41 . 49 45 . 44 28 . 61 10 . 66 35 . 37 25 . 31 24 . 94 27 . 0 44 . 30 44 . 80 32 . 70 15 . 30 36 . 70 25 . 00 29 . 93 26 . 11 27 . 03 35 . 91 28 . 32 6 . 57 32 . 16 19 . 84 24 . 62 29 . 09 42 . 43 42 . 00 29 . 60 10 . 62 36 . 36 24 . 61 28 . 71 26 . 80 42 . 00 44 . 10 32 . 90 18 . 60 36 . 80 26 . 90 30 . 83 43 . 29 60 . 41 63 . 08 47 . 05 29 . 63 54 . 08 36 . 15 45 . 33 Ablation study on the CenterRelative Positional Encoding setups. SC-IoU (%) ↑ SSC-mIoU (%) ↑"
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_023",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 23,
+      "total_chunks": 25,
+      "section_path": [
+        "Method"
+      ],
+      "primary_section": "Method",
+      "token_count": 393,
+      "text": "ISO [ 91 ] AdaSFormer w/o ADA w/o CRPE w/o CMLN 535 . 2 178 . 9 156 . 0 177 . 4 174 . 3 Latency Vanilla Serialized Transformer, Gumbel-Softmax learning, and the temperature annealing strategy. As illustrated in Tab. 4 , ‘Baseline’ represents the model without the Adaptive Serialized Transformer block. ‘VanillaShift’ uses torch.nn.Parameter to directly learn n discrete shifts for n serialized intervals. ‘GumbelShift’ adopts the straightthrough Gumbel-Softmax for discrete shift learning. In addition, the temperature annealing strategy is introduced to progressively adjust the Gumbel-Softmax during training. We observe that introducing Gumbel-Softmax improves the SSC performance by 1 . 35 mIoU, while further applying temperature annealing brings an additional 0 . 54 mIoU gain, demonstrating the effectiveness of these strategies in stabilizing optimization and enhancing adaptive shift learning. Design Choices of Center-Relative Positional Encoding. We further validate two key design choices of the center-relative positional encoding, including projected voxel mean (PVM) and the effectiveness of relative yaw and pitch positional encoding (RPY). As shown in Tab. 5 , for NYU v2, we observe that replacing the projected voxel mean (PVM) with the scene physical center at position [30 , 18 , 30] results in a drop of 0 . 39 mIoU, while removing the relative yaw and pitch positional encoding (RYP) leads to a decrease of 0 . 27 mIoU. Effect of Key Components on Computational Efficiency. Sofa Table TV Furn. Objects (e) AdaSFormer (d) Baseline In the end, we evaluate the computational efficiency of each component, including Adaptive Serialized Attention (ASA), Center-Relative Positional Encoding (CRPE), and Convolution-Modulated Layer Normalization (CMLN). As shown in Tab. 6 , AdaSFormer achieves a latency of 178 . 9 ms, which is significantly lower than ISO [ 91 ] ( 535 . 2 ms), demonstrating the efficiency of the proposed architecture. shown in Tab. 6 , AdaSFormer achieves a latency of 178 . 9 ms, which is significantly lower than ISO [ 91 ] ( 535 . 2 ms), demonstrating the efficiency of the proposed architecture. Removing individual modules leads to only marginal latency variations ( 156 . 0 ms without ASA, 177 . 4 ms without CRPE, and 174 . 3 ms without CMLN), indicating that all components are lightweight. ASA introduces a small overhead of 22 . 9 ms while contributing substantially to performance improvement, confirming the balance between efficiency and accuracy."
+    },
+    {
+      "chunk_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments::chunk_024",
+      "paper_id": "2603.25494v1.AdaSFormer__Adaptive_Serialized_Transformers_for_Monocular_Semantic_Scene_Completion_from_Indoor_Environments",
+      "title": "A d a S F o r m e r : Adaptive Serialized Transformers for Monocular Semantic Scene Completion from Indoor Environments",
+      "chunk_index": 24,
+      "total_chunks": 25,
+      "section_path": [
+        "Conclusion"
+      ],
+      "primary_section": "Conclusion",
+      "token_count": 93,
+      "text": "In this paper, we propose a novel Adaptive Serialized Transformer (AdaSFormer) framework for indoor monocular semantic scene completion, which incorporates three key designs: 1) an Adaptive Serialized Attention that enables a larger, high-resolution, and adaptive receptive field; 2) a Center-Relative Positional Encoding that captures the spatial information richness to better represent scene structure; and 3) a Conv-Modulated Layer Normalization that facilitates the integration of Transformer and convolutional architectures, leading to a lightweight yet effective design. Extensive experiments on NYUv2 and Occ-ScanNet demonstrate the superiority of our method, achieving stateof-the-art performance across multiple datasets."
+    }
+  ]
+}
