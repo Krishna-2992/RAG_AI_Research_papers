@@ -2,14 +2,32 @@ import json
 import os
 import re
 import statistics
+import sys
+import argparse
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import fitz  # PyMuPDF
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-PDF_DIR = "data/raw_papers"
-OUT_DIR = "data/parsed_papers"
-os.makedirs(OUT_DIR, exist_ok=True)
+from config import load_config
+from schemas import DocumentMetadata, ParsedDocument, ParsedSection, ParserInfo
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Parse downloaded PDFs into structured section JSON."
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Path to the YAML config file.",
+    )
+    return parser.parse_args()
 
 CANONICAL_SECTION_MAP = {
     "abstract": "Abstract",
@@ -326,6 +344,7 @@ def split_embedded_heading(text: str, body_font_size: float, line: Dict[str, Any
 
 def push_section(
     sections: List[Dict[str, Any]],
+    document_id: str,
     current_heading: Optional[str],
     current_raw_heading: Optional[str],
     current_page_start: Optional[int],
@@ -341,14 +360,19 @@ def push_section(
         return
 
     text = "\n\n".join(paragraphs)
-    sections.append({
-        "section": current_heading,
-        "raw_heading": current_raw_heading or current_heading,
-        "page_start": current_page_start,
-        "page_end": current_page_end,
-        "paragraphs": paragraphs,
-        "text": text,
-    })
+    sections.append(
+        ParsedSection(
+            section_id=f"{document_id}::section_{len(sections):03d}",
+            document_id=document_id,
+            section_title=current_heading,
+            normalized_section_title=current_heading,
+            raw_heading=current_raw_heading or current_heading,
+            page_start=current_page_start,
+            page_end=current_page_end,
+            paragraphs=paragraphs,
+            text=text,
+        ).model_dump(mode="json")
+    )
 
 
 def merge_lines_to_paragraphs(lines: Sequence[str]) -> List[str]:
@@ -381,12 +405,31 @@ def merge_lines_to_paragraphs(lines: Sequence[str]) -> List[str]:
     return paragraphs
 
 
-def extract_sections_from_pdf(path: str) -> Dict[str, Any]:
+def load_document_metadata(metadata_dir: Path, pdf_path: Path, source_type: str) -> DocumentMetadata:
+    metadata_path = metadata_dir / f"{pdf_path.stem}.json"
+    if metadata_path.exists():
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            return DocumentMetadata.model_validate(json.load(f))
+
+    return DocumentMetadata(
+        document_id=pdf_path.stem,
+        title=pdf_path.stem,
+        source_file=pdf_path.name,
+        source_path=str(pdf_path),
+        source_type=source_type,
+    )
+
+
+def extract_sections_from_pdf(path: Path, metadata_dir: Path, parser_version: str, source_type: str) -> ParsedDocument:
     doc = fitz.open(path)
-    paper_id = os.path.splitext(os.path.basename(path))[0]
+    document = load_document_metadata(metadata_dir=metadata_dir, pdf_path=path, source_type=source_type)
+    paper_id = document.document_id
     lines = ordered_lines(doc)
     body_font_size = estimate_body_font_size(lines)
-    title = detect_title(lines, body_font_size) or (doc.metadata.get("title") or "").strip() or paper_id
+    detected_title = detect_title(lines, body_font_size) or (doc.metadata.get("title") or "").strip() or paper_id
+    document.title = document.title or detected_title
+    if document.title == paper_id:
+        document.title = detected_title
 
     sections: List[Dict[str, Any]] = []
     current_heading: Optional[str] = None
@@ -400,6 +443,7 @@ def extract_sections_from_pdf(path: str) -> Dict[str, Any]:
         nonlocal paragraph_buffer
         push_section(
             sections=sections,
+            document_id=paper_id,
             current_heading=current_heading,
             current_raw_heading=current_raw_heading,
             current_page_start=current_page_start,
@@ -466,32 +510,41 @@ def extract_sections_from_pdf(path: str) -> Dict[str, Any]:
     if current_heading and paragraph_buffer:
         finalize_current_section()
 
-    return {
-        "paper_id": paper_id,
-        "title": title,
-        "parser": {
-            "version": "2.0",
-            "body_font_size": round(body_font_size, 2),
-        },
-        "sections": sections,
-    }
+    return ParsedDocument(
+        document=document,
+        parser=ParserInfo(
+            version=parser_version,
+            body_font_size=round(body_font_size, 2),
+        ),
+        sections=[ParsedSection.model_validate(section) for section in sections],
+    )
 
 
-def process_all_pdfs() -> None:
-    os.makedirs(OUT_DIR, exist_ok=True)
+def process_all_pdfs(config_path: Optional[Path] = None) -> None:
+    app_config = load_config(config_path)
+    pdf_dir = app_config.paths.raw_papers
+    out_dir = app_config.paths.parsed_papers
+    metadata_dir = app_config.paths.metadata
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    for filename in sorted(os.listdir(PDF_DIR)):
+    for filename in sorted(os.listdir(pdf_dir)):
         if not filename.lower().endswith(".pdf"):
             continue
 
-        pdf_path = os.path.join(PDF_DIR, filename)
+        pdf_path = pdf_dir / filename
         print(f"Parsing {pdf_path}...")
-        parsed = extract_sections_from_pdf(pdf_path)
+        parsed = extract_sections_from_pdf(
+            path=pdf_path,
+            metadata_dir=metadata_dir,
+            parser_version=app_config.parsing.parser_version,
+            source_type=app_config.parsing.source_type,
+        )
 
-        out_path = os.path.join(OUT_DIR, os.path.splitext(filename)[0] + ".json")
+        out_path = out_dir / f"{pdf_path.stem}.json"
         with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(parsed, f, ensure_ascii=False, indent=2)
+            json.dump(parsed.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
-    process_all_pdfs()
+    args = parse_args()
+    process_all_pdfs(args.config)

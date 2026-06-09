@@ -1,18 +1,19 @@
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-DEFAULT_INPUT_DIR = Path("data/chunked_papers")
-DEFAULT_OUTPUT_DIR = Path("data/embeddings")
-DEFAULT_MODEL = "text-embedding-3-large"
-DEFAULT_BATCH_SIZE = 32
-DEFAULT_ENV_FILE = Path(".env")
+from config import load_config
+from schemas import EmbeddedDocument, EmbeddingInfo, EmbeddingRecord, ChunkedDocument
 
 
 def load_environment(env_file: Path) -> None:
@@ -45,9 +46,10 @@ def create_embeddings_for_file(
     output_dir: Path,
     model: str,
     batch_size: int,
+    provider: str,
 ) -> None:
-    document = read_chunk_file(input_path)
-    chunks = document.get("chunks", [])
+    document = ChunkedDocument.model_validate(read_chunk_file(input_path))
+    chunks = document.chunks
     if not chunks:
         print(f"Skipping {input_path.name}: no chunks found.")
         return
@@ -55,31 +57,34 @@ def create_embeddings_for_file(
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = build_output_path(input_path, output_dir)
 
-    embeddings_payload = {
-        "paper_id": document.get("paper_id", ""),
-        "title": document.get("title", ""),
-        "source_file": document.get("source_file", input_path.name),
-        "embedding_model": model,
-        "chunk_count": len(chunks),
-        "embeddings": [],
-    }
+    embeddings_payload = EmbeddedDocument(
+        document=document.document,
+        embedding=EmbeddingInfo(
+            provider=provider,
+            model=model,
+            batch_size=batch_size,
+        ),
+        chunk_count=len(chunks),
+        embeddings=[],
+    )
 
     for batch in batch_items(chunks, batch_size):
-        texts = [chunk["text"] for chunk in batch]
+        texts = [chunk.text for chunk in batch]
         response = client.embeddings.create(model=model, input=texts)
         for chunk, embedding_item in zip(batch, response.data):
-            embeddings_payload["embeddings"].append({
-                "chunk_id": chunk.get("chunk_id"),
-                "paper_id": chunk.get("paper_id"),
-                "title": chunk.get("title"),
-                "chunk_index": chunk.get("chunk_index"),
-                "section_path": chunk.get("section_path"),
-                "token_count": chunk.get("token_count"),
-                "text": chunk.get("text"),
-                "vector": embedding_item.embedding,
-            })
+            embeddings_payload.embeddings.append(
+                EmbeddingRecord(
+                    chunk_id=chunk.chunk_id,
+                    document_id=chunk.document_id,
+                    chunk_index=chunk.chunk_index,
+                    section_path=chunk.section_path,
+                    token_count=chunk.token_count,
+                    text=chunk.text,
+                    vector=embedding_item.embedding,
+                )
+            )
 
-    save_embedding_file(output_path, embeddings_payload)
+    save_embedding_file(output_path, embeddings_payload.model_dump(mode="json"))
     print(f"Saved embeddings for {input_path.name} → {output_path}")
 
 
@@ -88,36 +93,46 @@ def list_input_files(input_dir: Path) -> List[Path]:
 
 
 def parse_args() -> argparse.Namespace:
+    bootstrap = argparse.ArgumentParser(add_help=False)
+    bootstrap.add_argument("--config", type=Path, default=None)
+    partial_args, _ = bootstrap.parse_known_args()
+    app_config = load_config(partial_args.config)
     parser = argparse.ArgumentParser(
         description="Create OpenAI embeddings from chunked paper JSON files."
     )
     parser.add_argument(
+        "--config",
+        type=Path,
+        default=partial_args.config,
+        help="Path to the YAML config file.",
+    )
+    parser.add_argument(
         "--input-dir",
         type=Path,
-        default=DEFAULT_INPUT_DIR,
+        default=app_config.paths.chunked_papers,
         help="Directory containing chunked paper JSON files.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=DEFAULT_OUTPUT_DIR,
+        default=app_config.paths.embeddings,
         help="Directory where embedding JSON files will be written.",
     )
     parser.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
+        default=app_config.embedding.model,
         help="OpenAI embedding model to use.",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=DEFAULT_BATCH_SIZE,
+        default=app_config.embedding.batch_size,
         help="Number of chunks to send per embedding request.",
     )
     parser.add_argument(
         "--env-file",
         type=Path,
-        default=DEFAULT_ENV_FILE,
+        default=app_config.embedding.env_file,
         help="Path to .env file containing OPENAI_API_KEY.",
     )
     return parser.parse_args()
@@ -125,6 +140,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    app_config = load_config(args.config)
     load_environment(args.env_file)
 
     api_key = os.getenv("OPENAI_API_KEY")
@@ -146,6 +162,7 @@ def main() -> None:
             output_dir=args.output_dir,
             model=args.model,
             batch_size=args.batch_size,
+            provider=app_config.embedding.provider,
         )
 
 

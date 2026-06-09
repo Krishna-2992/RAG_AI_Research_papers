@@ -1,0 +1,33 @@
+project:
+  name: advanced-rag
+  version: "1.0"
+
+paths:
+  raw_papers: data/raw_papers
+  parsed_papers: data/parsed_papers
+  chunked_papers: data/chunked_papers
+  embeddings: data/embeddings
+  metadata: data/metadata
+
+ingestion:
+  source: arxiv
+  query: 'ti:"transformer" OR abs:"transformer" AND (cat:cs.LG OR cat:cs.CL)'
+  max_results: 10
+  sort_by: submitted_date
+  sort_order: descending
+
+parsing:
+  parser_version: "3.0"
+  source_type: arxiv
+
+chunking:
+  strategy: section_based
+  min_tokens: 120
+  max_tokens: 300
+  overlap_tokens: 35
+
+embedding:
+  provider: openai
+  model: text-embedding-3-large
+  batch_size: 32
+  env_file: .env

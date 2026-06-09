@@ -2,11 +2,16 @@ import argparse
 import json
 import os
 import re
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-DEFAULT_INPUT_DIR = "data/parsed_papers"
-DEFAULT_OUTPUT_DIR = "data/chunked_papers"
+from config import load_config
+from schemas import ChunkRecord, ChunkedDocument, ChunkingInfo, ParsedDocument
 
 
 def normalize_whitespace(text: str) -> str:
@@ -166,11 +171,11 @@ def last_tokens_text(text: str, token_count: int) -> str:
     return " ".join(tokens[-token_count:])
 
 
-def clean_section_entries(sections: Sequence[Dict[str, Any]]) -> List[Dict[str, str]]:
-    cleaned: List[Dict[str, str]] = []
+def clean_section_entries(sections: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    cleaned: List[Dict[str, Any]] = []
 
     for section in sections:
-        raw_name = normalize_whitespace(str(section.get("section", "")))
+        raw_name = normalize_whitespace(str(section.get("normalized_section_title", "")))
         paragraphs = section.get("paragraphs")
         if isinstance(paragraphs, list) and paragraphs:
             raw_text = trim_non_content_tail("\n\n".join(str(p) for p in paragraphs))
@@ -186,16 +191,21 @@ def clean_section_entries(sections: Sequence[Dict[str, Any]]) -> List[Dict[str, 
         if section_name == "References" or is_reference_like(raw_text):
             continue
 
-        cleaned.append({
-            "section": section_name,
-            "text": raw_text,
-        })
+        cleaned.append(
+            {
+                "section_id": section.get("section_id", ""),
+                "section": section_name,
+                "text": raw_text,
+                "page_start": section.get("page_start"),
+                "page_end": section.get("page_end"),
+            }
+        )
 
     return cleaned
 
 
 def build_section_based_chunks(
-    sections: Sequence[Dict[str, str]],
+    sections: Sequence[Dict[str, Any]],
     min_tokens: int,
     max_tokens: int,
     overlap_tokens: int,
@@ -203,26 +213,38 @@ def build_section_based_chunks(
     chunks: List[Dict[str, Any]] = []
     buffer_parts: List[str] = []
     buffer_sections: List[str] = []
+    buffer_section_ids: List[str] = []
     buffer_tokens = 0
+    buffer_page_start = None
+    buffer_page_end = None
 
     def flush_buffer() -> None:
-        nonlocal buffer_parts, buffer_sections, buffer_tokens
+        nonlocal buffer_parts, buffer_sections, buffer_section_ids, buffer_tokens, buffer_page_start, buffer_page_end
 
         text = normalize_whitespace(" ".join(buffer_parts))
         if text:
             chunks.append({
+                "section_ids": list(dict.fromkeys(buffer_section_ids)),
                 "section_path": list(dict.fromkeys(buffer_sections)),
                 "text": text,
                 "token_count": approximate_tokens(text),
+                "page_start": buffer_page_start,
+                "page_end": buffer_page_end,
             })
 
         buffer_parts = []
         buffer_sections = []
+        buffer_section_ids = []
         buffer_tokens = 0
+        buffer_page_start = None
+        buffer_page_end = None
 
     for section in sections:
         section_name = section["section"]
         section_text = normalize_whitespace(section["text"])
+        section_id = section.get("section_id", "")
+        section_page_start = section.get("page_start")
+        section_page_end = section.get("page_end")
         if not section_text:
             continue
 
@@ -232,9 +254,12 @@ def build_section_based_chunks(
             flush_buffer()
             for part in split_long_text(section_text, max_tokens=max_tokens, overlap_tokens=overlap_tokens):
                 chunks.append({
+                    "section_ids": [section_id] if section_id else [],
                     "section_path": [section_name],
                     "text": part,
                     "token_count": approximate_tokens(part),
+                    "page_start": section_page_start,
+                    "page_end": section_page_end,
                 })
             continue
 
@@ -248,33 +273,38 @@ def build_section_based_chunks(
 
         buffer_parts.append(section_text)
         buffer_sections.append(section_name)
+        if section_id:
+            buffer_section_ids.append(section_id)
         buffer_tokens += section_tokens
+        if buffer_page_start is None:
+            buffer_page_start = section_page_start
+        buffer_page_end = section_page_end
 
     flush_buffer()
     return chunks
 
 
-def enrich_chunks(
-    paper: Dict[str, Any],
-    chunks: Sequence[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    paper_id = paper.get("paper_id", "")
-    title = paper.get("title", "")
+def enrich_chunks(paper: ParsedDocument, chunks: Sequence[Dict[str, Any]]) -> List[ChunkRecord]:
+    paper_id = paper.document.document_id
     total_chunks = len(chunks)
 
-    enriched: List[Dict[str, Any]] = []
+    enriched: List[ChunkRecord] = []
     for index, chunk in enumerate(chunks):
-        enriched.append({
-            "chunk_id": f"{paper_id}::chunk_{index:03d}",
-            "paper_id": paper_id,
-            "title": title,
-            "chunk_index": index,
-            "total_chunks": total_chunks,
-            "section_path": chunk["section_path"],
-            "primary_section": chunk["section_path"][0] if chunk["section_path"] else "Unknown",
-            "token_count": chunk["token_count"],
-            "text": chunk["text"],
-        })
+        enriched.append(
+            ChunkRecord(
+                chunk_id=f"{paper_id}::chunk_{index:03d}",
+                document_id=paper_id,
+                chunk_index=index,
+                total_chunks=total_chunks,
+                section_ids=chunk.get("section_ids", []),
+                section_path=chunk["section_path"],
+                primary_section=chunk["section_path"][0] if chunk["section_path"] else "Unknown",
+                token_count=chunk["token_count"],
+                page_start=chunk.get("page_start"),
+                page_end=chunk.get("page_end"),
+                text=chunk["text"],
+            )
+        )
 
     return enriched
 
@@ -292,6 +322,10 @@ def merge_small_chunks(chunks: Sequence[Dict[str, Any]], min_tokens: int) -> Lis
                 f'{merged[-1]["text"]} {chunk["text"]}'
             )
             merged[-1]["token_count"] = approximate_tokens(merged[-1]["text"])
+            merged[-1]["section_ids"] = list(
+                dict.fromkeys(merged[-1].get("section_ids", []) + chunk.get("section_ids", []))
+            )
+            merged[-1]["page_end"] = chunk.get("page_end")
             continue
 
         merged.append(dict(chunk))
@@ -302,14 +336,17 @@ def merge_small_chunks(chunks: Sequence[Dict[str, Any]], min_tokens: int) -> Lis
 def process_paper(
     input_path: str,
     output_path: str,
+    strategy: str,
     min_tokens: int,
     max_tokens: int,
     overlap_tokens: int,
 ) -> None:
     with open(input_path, "r", encoding="utf-8") as f:
-        paper = json.load(f)
+        paper = ParsedDocument.model_validate(json.load(f))
 
-    cleaned_sections = clean_section_entries(paper.get("sections", []))
+    cleaned_sections = clean_section_entries(
+        [section.model_dump(mode="json") for section in paper.sections]
+    )
     chunks = build_section_based_chunks(
         cleaned_sections,
         min_tokens=min_tokens,
@@ -319,26 +356,25 @@ def process_paper(
     chunks = merge_small_chunks(chunks, min_tokens=min_tokens)
     enriched_chunks = enrich_chunks(paper, chunks)
 
-    payload = {
-        "paper_id": paper.get("paper_id", ""),
-        "title": paper.get("title", ""),
-        "source_file": os.path.basename(input_path),
-        "chunking": {
-            "strategy": "section_based",
-            "min_tokens": min_tokens,
-            "max_tokens": max_tokens,
-            "overlap_tokens": overlap_tokens,
-        },
-        "chunks": enriched_chunks,
-    }
+    payload = ChunkedDocument(
+        document=paper.document,
+        chunking=ChunkingInfo(
+            strategy=strategy,
+            min_tokens=min_tokens,
+            max_tokens=max_tokens,
+            overlap_tokens=overlap_tokens,
+        ),
+        chunks=enriched_chunks,
+    )
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
 
 
 def process_all_papers(
     input_dir: str,
     output_dir: str,
+    strategy: str,
     min_tokens: int,
     max_tokens: int,
     overlap_tokens: int,
@@ -356,6 +392,7 @@ def process_all_papers(
         process_paper(
             input_path=input_path,
             output_path=output_path,
+            strategy=strategy,
             min_tokens=min_tokens,
             max_tokens=max_tokens,
             overlap_tokens=overlap_tokens,
@@ -363,14 +400,19 @@ def process_all_papers(
 
 
 def parse_args() -> argparse.Namespace:
+    bootstrap = argparse.ArgumentParser(add_help=False)
+    bootstrap.add_argument("--config", type=Path, default=None)
+    partial_args, _ = bootstrap.parse_known_args()
+    app_config = load_config(partial_args.config)
     parser = argparse.ArgumentParser(
         description="Create section-aware chunks from parsed paper JSON files."
     )
-    parser.add_argument("--input-dir", default=DEFAULT_INPUT_DIR)
-    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--min-tokens", type=int, default=120)
-    parser.add_argument("--max-tokens", type=int, default=300)
-    parser.add_argument("--overlap-tokens", type=int, default=35)
+    parser.add_argument("--config", type=Path, default=partial_args.config)
+    parser.add_argument("--input-dir", default=str(app_config.paths.parsed_papers))
+    parser.add_argument("--output-dir", default=str(app_config.paths.chunked_papers))
+    parser.add_argument("--min-tokens", type=int, default=app_config.chunking.min_tokens)
+    parser.add_argument("--max-tokens", type=int, default=app_config.chunking.max_tokens)
+    parser.add_argument("--overlap-tokens", type=int, default=app_config.chunking.overlap_tokens)
     return parser.parse_args()
 
 
@@ -379,6 +421,7 @@ if __name__ == "__main__":
     process_all_papers(
         input_dir=args.input_dir,
         output_dir=args.output_dir,
+        strategy=load_config(args.config).chunking.strategy,
         min_tokens=args.min_tokens,
         max_tokens=args.max_tokens,
         overlap_tokens=args.overlap_tokens,
